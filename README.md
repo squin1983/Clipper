@@ -21,3 +21,10 @@ Upload this folder to any HTTPS static host (for example a static-site host). On
 
 ## AI upgrade
 The current remix engine is deterministic/local so the PWA works without an API key. A secure backend can replace `makeHook()` and `makeCaption()` with an LLM service without exposing a secret API key in the browser.
+
+
+## Instagram source connector
+
+This version adds an Instagram public-Reels connector through the Apify `instagram-scraper~instagram-profile-reels-scraper` actor. Add your Apify API token in Settings, then add a public Instagram username and tap Add & Sync. The app stores the token only in this browser's local storage. Apify currently lists this actor as no-login public-profile Reel scraping and prices it per result; check its current pricing before use.
+
+The connector retrieves public Reel metadata/media URLs. A browser PWA cannot safely guarantee server-side downloading/rendering of every Instagram CDN URL, so the current build exposes the retrieved video URL and uses the retrieved Reels in the random pool. Full automatic server-side rendering requires a backend media proxy/render service.
