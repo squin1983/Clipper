@@ -118,12 +118,6 @@ button:disabled{
     color:#ff9b9b;
 }
 
-.small{
-    font-size:13px;
-    color:#85858f;
-    line-height:1.5;
-}
-
 .accounts{
     display:flex;
     flex-wrap:wrap;
@@ -261,7 +255,7 @@ button:disabled{
     <h1>CLIPPER</h1>
 
     <div class="subtitle">
-        Instagram inspiration → Random 10 → Remix → Export
+        Instagram inspiration → Random 10 Reels → Remix → Export
     </div>
 
 
@@ -340,12 +334,18 @@ button:disabled{
 
         <h2>3. Daily inspiration</h2>
 
+        <div class="small">
+            Only Reels and video content will be shown.
+        </div>
+
+        <br>
+
         <button
             id="randomButton"
             class="primary"
             onclick="loadRandom10()"
         >
-            🎲 GIVE ME 10
+            🎲 GIVE ME 10 REELS
         </button>
 
         <button
@@ -367,14 +367,14 @@ button:disabled{
 
     <div class="card">
 
-        <h2>4. Inspiration feed</h2>
+        <h2>4. Daily inspiration — Reels only</h2>
 
         <div
             id="results"
             class="grid"
         >
             <div class="empty">
-                Your inspiration clips will appear here.
+                Your 10 Reels will appear here.
             </div>
         </div>
 
@@ -388,7 +388,7 @@ button:disabled{
         <h2>5. Remix queue</h2>
 
         <div class="small">
-            Select clips above and add them to the remix queue.
+            Select Reels above and add them to the remix queue.
         </div>
 
         <br>
@@ -418,7 +418,7 @@ button:disabled{
 <script>
 
 /* =========================================
-   CLIPPER
+   CLIPPER DATA
    ========================================= */
 
 let accounts = JSON.parse(
@@ -434,16 +434,23 @@ let queue = [];
    START
    ========================================= */
 
-document.addEventListener("DOMContentLoaded", function(){
+document.addEventListener(
+    "DOMContentLoaded",
+    function(){
 
-    const token =
-        localStorage.getItem("clipper_apify_token") || "";
+        const token =
+            localStorage.getItem(
+                "clipper_apify_token"
+            ) || "";
 
-    document.getElementById("apifyToken").value = token;
+        document.getElementById(
+            "apifyToken"
+        ).value = token;
 
-    renderAccounts();
+        renderAccounts();
 
-});
+    }
+);
 
 
 /* =========================================
@@ -453,13 +460,20 @@ document.addEventListener("DOMContentLoaded", function(){
 async function saveAndTestApify(){
 
     const token =
-        document.getElementById("apifyToken").value.trim();
+        document
+        .getElementById("apifyToken")
+        .value
+        .trim();
 
     const status =
-        document.getElementById("apifyStatus");
+        document.getElementById(
+            "apifyStatus"
+        );
 
     const button =
-        document.getElementById("testButton");
+        document.getElementById(
+            "testButton"
+        );
 
     if(!token){
 
@@ -496,8 +510,7 @@ async function saveAndTestApify(){
 
         }
 
-        const data =
-            await response.json();
+        await response.json();
 
         localStorage.setItem(
             "clipper_apify_token",
@@ -539,7 +552,9 @@ function clearToken(){
     ).value = "";
 
     const status =
-        document.getElementById("apifyStatus");
+        document.getElementById(
+            "apifyStatus"
+        );
 
     status.className = "status";
 
@@ -548,7 +563,11 @@ function clearToken(){
 }
 
 
-function showStatus(element,text,success){
+function showStatus(
+    element,
+    text,
+    success
+){
 
     element.textContent = text;
 
@@ -569,7 +588,10 @@ function cleanUsername(value){
     value = value.trim();
 
     value = value
-        .replace(/^https?:\/\/(www\.)?instagram\.com\//i,"")
+        .replace(
+            /^https?:\/\/(www\.)?instagram\.com\//i,
+            ""
+        )
         .split("?")[0]
         .split("#")[0]
         .replace(/^@/,"")
@@ -583,7 +605,9 @@ function cleanUsername(value){
 function addAccount(){
 
     const input =
-        document.getElementById("accountInput");
+        document.getElementById(
+            "accountInput"
+        );
 
     const username =
         cleanUsername(input.value);
@@ -624,7 +648,8 @@ function removeAccount(username){
 
     accounts =
         accounts.filter(
-            account => account !== username
+            account =>
+                account !== username
         );
 
     localStorage.setItem(
@@ -640,7 +665,9 @@ function removeAccount(username){
 function renderAccounts(){
 
     const container =
-        document.getElementById("accounts");
+        document.getElementById(
+            "accounts"
+        );
 
     container.innerHTML = "";
 
@@ -652,39 +679,56 @@ function renderAccounts(){
         return;
     }
 
-    accounts.forEach(function(username){
+    accounts.forEach(
+        function(username){
 
-        const div =
-            document.createElement("div");
+            const div =
+                document.createElement(
+                    "div"
+                );
 
-        div.className = "account";
+            div.className =
+                "account";
 
-        const name =
-            document.createElement("span");
 
-        name.textContent =
-            "@" + username;
+            const name =
+                document.createElement(
+                    "span"
+                );
 
-        const remove =
-            document.createElement("button");
+            name.textContent =
+                "@" + username;
 
-        remove.className = "danger";
 
-        remove.textContent = "×";
+            const remove =
+                document.createElement(
+                    "button"
+                );
 
-        remove.onclick = function(){
+            remove.className =
+                "danger";
 
-            removeAccount(username);
+            remove.textContent =
+                "×";
 
-        };
+            remove.onclick =
+                function(){
 
-        div.appendChild(name);
+                    removeAccount(
+                        username
+                    );
 
-        div.appendChild(remove);
+                };
 
-        container.appendChild(div);
 
-    });
+            div.appendChild(name);
+
+            div.appendChild(remove);
+
+            container.appendChild(div);
+
+        }
+    );
 
 }
 
@@ -696,13 +740,20 @@ function renderAccounts(){
 async function loadRandom10(){
 
     const token =
-        localStorage.getItem("clipper_apify_token");
+        localStorage.getItem(
+            "clipper_apify_token"
+        );
 
     const button =
-        document.getElementById("randomButton");
+        document.getElementById(
+            "randomButton"
+        );
 
     const status =
-        document.getElementById("loadStatus");
+        document.getElementById(
+            "loadStatus"
+        );
+
 
     if(!token){
 
@@ -713,6 +764,7 @@ async function loadRandom10(){
         return;
     }
 
+
     if(!accounts.length){
 
         alert(
@@ -722,18 +774,23 @@ async function loadRandom10(){
         return;
     }
 
+
     button.disabled = true;
 
-    status.style.display = "block";
+    status.style.display =
+        "block";
 
     status.textContent =
-        "Loading inspiration...";
+        "Searching for Reels...";
+
 
     clearResults();
+
 
     try{
 
         let allItems = [];
+
 
         for(
             let i = 0;
@@ -744,10 +801,12 @@ async function loadRandom10(){
             const username =
                 accounts[i];
 
+
             status.textContent =
-                "Loading @" +
+                "Loading Reels from @" +
                 username +
                 "...";
+
 
             const input = {
 
@@ -757,11 +816,14 @@ async function loadRandom10(){
                     "/"
                 ],
 
-                resultsType: "posts",
+                resultsType:
+                    "posts",
 
-                resultsLimit: 30
+                resultsLimit:
+                    50
 
             };
+
 
             const endpoint =
                 "https://api.apify.com/v2/acts/" +
@@ -769,19 +831,25 @@ async function loadRandom10(){
                 "run-sync-get-dataset-items?token=" +
                 encodeURIComponent(token);
 
+
             const response =
                 await fetch(
                     endpoint,
                     {
                         method:"POST",
+
                         headers:{
                             "Content-Type":
                                 "application/json"
                         },
+
                         body:
-                            JSON.stringify(input)
+                            JSON.stringify(
+                                input
+                            )
                     }
                 );
+
 
             if(!response.ok){
 
@@ -797,8 +865,10 @@ async function loadRandom10(){
 
             }
 
+
             const items =
                 await response.json();
+
 
             if(Array.isArray(items)){
 
@@ -811,38 +881,76 @@ async function loadRandom10(){
         }
 
 
-        reels =
+        /*
+          Normalize everything first.
+        */
+
+        const normalized =
             allItems
-            .map(normalizeReel)
+            .map(normalizeReel);
+
+
+        /*
+          IMPORTANT:
+          Only actual Reels/video items
+          are allowed through.
+        */
+
+        reels =
+            normalized
             .filter(function(item){
 
-                return (
-                    item.image ||
-                    item.video
-                );
+                return isReel(item);
 
             });
 
+
+        /*
+          Remove duplicates.
+        */
+
         reels =
-            shuffle(reels).slice(0,10);
+            uniqueById(reels);
+
+
+        /*
+          Randomize.
+        */
+
+        reels =
+            shuffle(reels)
+            .slice(0,10);
+
 
         renderResults();
+
 
         status.textContent =
             "✓ Found " +
             reels.length +
-            " inspiration items.";
+            " Reels.";
+
+
+        if(!reels.length){
+
+            status.textContent =
+                "No Reels were detected. The scraper may be returning posts without a video URL.";
+
+        }
+
 
     }catch(error){
 
         console.error(error);
 
         status.textContent =
-            "✕ " + error.message;
+            "✕ " +
+            error.message;
 
     }finally{
 
-        button.disabled = false;
+        button.disabled =
+            false;
 
     }
 
@@ -850,7 +958,7 @@ async function loadRandom10(){
 
 
 /* =========================================
-   NORMALIZE DATA
+   NORMALIZE APIFY ITEM
    ========================================= */
 
 function normalizeReel(item){
@@ -861,57 +969,94 @@ function normalizeReel(item){
             item.id ||
             item.pk ||
             item.shortCode ||
+            item.code ||
             Math.random()
                 .toString(36)
                 .substring(2),
+
 
         url:
             item.url ||
             item.webUrl ||
             item.link ||
+            item.permalink ||
             "",
+
 
         image:
             item.displayUrl ||
             item.thumbnailUrl ||
             item.imageUrl ||
             item.thumbnail ||
+            item.display_url ||
             "",
+
 
         video:
             item.videoUrl ||
             item.video ||
+            item.video_url ||
+            item.videoUrlHd ||
+            item.videoUrlHigh ||
             "",
+
 
         caption:
             item.caption ||
             item.text ||
             "",
 
+
         likes:
             item.likesCount ||
             item.likes ||
+            item.likeCount ||
             0,
+
 
         comments:
             item.commentsCount ||
             item.comments ||
+            item.commentCount ||
             0,
+
 
         views:
             item.videoViewCount ||
             item.videoViews ||
             item.views ||
+            item.playCount ||
             0,
+
 
         timestamp:
             item.timestamp ||
             item.takenAt ||
+            item.date ||
             "",
+
 
         owner:
             item.ownerUsername ||
             item.username ||
+            item.owner?.username ||
+            "",
+
+
+        productType:
+            item.productType ||
+            item.product_type ||
+            "",
+
+
+        mediaType:
+            item.mediaType ||
+            item.media_type ||
+            "",
+
+
+        type:
+            item.type ||
             ""
 
     };
@@ -920,153 +1065,360 @@ function normalizeReel(item){
 
 
 /* =========================================
-   DISPLAY RESULTS
+   REEL FILTER
+   ========================================= */
+
+function isReel(item){
+
+    const url =
+        String(
+            item.url || ""
+        ).toLowerCase();
+
+
+    const productType =
+        String(
+            item.productType || ""
+        ).toLowerCase();
+
+
+    const mediaType =
+        String(
+            item.mediaType || ""
+        ).toLowerCase();
+
+
+    const type =
+        String(
+            item.type || ""
+        ).toLowerCase();
+
+
+    const hasVideo =
+        Boolean(
+            item.video
+        );
+
+
+    /*
+      A Reel can be identified by:
+      - /reel/ URL
+      - product type
+      - media type
+      - explicit Reel type
+      - actual video URL
+    */
+
+    if(
+        url.includes("/reel/")
+    ){
+
+        return true;
+
+    }
+
+
+    if(
+        productType === "clips" ||
+        productType === "reel" ||
+        productType === "reels"
+    ){
+
+        return true;
+
+    }
+
+
+    if(
+        mediaType === "reel" ||
+        mediaType === "reels"
+    ){
+
+        return true;
+
+    }
+
+
+    if(
+        type === "reel" ||
+        type === "reels" ||
+        type === "video"
+    ){
+
+        return true;
+
+    }
+
+
+    if(hasVideo){
+
+        return true;
+
+    }
+
+
+    return false;
+
+}
+
+
+/* =========================================
+   REMOVE DUPLICATES
+   ========================================= */
+
+function uniqueById(items){
+
+    const seen =
+        new Set();
+
+    return items.filter(
+        function(item){
+
+            if(seen.has(item.id)){
+
+                return false;
+
+            }
+
+            seen.add(item.id);
+
+            return true;
+
+        }
+    );
+
+}
+
+
+/* =========================================
+   RESULTS
    ========================================= */
 
 function renderResults(){
 
     const container =
-        document.getElementById("results");
+        document.getElementById(
+            "results"
+        );
 
     container.innerHTML = "";
+
 
     if(!reels.length){
 
         container.innerHTML =
-            '<div class="empty">No suitable posts found.</div>';
+            '<div class="empty">No Reels found.</div>';
 
         return;
     }
 
-    reels.forEach(function(reel,index){
 
-        const card =
-            document.createElement("div");
+    reels.forEach(
+        function(reel,index){
 
-        card.className = "reel";
+            const card =
+                document.createElement(
+                    "div"
+                );
 
-
-        const image =
-            reel.image ||
-            "https://placehold.co/600x900?text=Preview";
-
-
-        const img =
-            document.createElement("img");
-
-        img.src = image;
-
-        img.alt = "Instagram preview";
-
-        img.onerror = function(){
-
-            this.src =
-                "https://placehold.co/600x900?text=Preview+Unavailable";
-
-        };
+            card.className =
+                "reel";
 
 
-        const body =
-            document.createElement("div");
+            const image =
+                reel.image ||
+                "https://placehold.co/600x900?text=Reel";
 
-        body.className = "reel-body";
+
+            const img =
+                document.createElement(
+                    "img"
+                );
+
+            img.src =
+                image;
+
+            img.alt =
+                "Instagram Reel preview";
 
 
-        const title =
-            document.createElement("div");
+            img.onerror =
+                function(){
 
-        title.className = "reel-title";
+                    this.src =
+                        "https://placehold.co/600x900?text=Preview+Unavailable";
 
-        title.textContent =
-            "#" +
-            (index + 1) +
-            (
-                reel.owner
-                ? " · @" + reel.owner
-                : ""
+                };
+
+
+            const body =
+                document.createElement(
+                    "div"
+                );
+
+            body.className =
+                "reel-body";
+
+
+            const title =
+                document.createElement(
+                    "div"
+                );
+
+            title.className =
+                "reel-title";
+
+            title.textContent =
+                "#" +
+                (index + 1) +
+                (
+                    reel.owner
+                    ? " · @" +
+                      reel.owner
+                    : ""
+                );
+
+
+            const badge =
+                document.createElement(
+                    "span"
+                );
+
+            badge.className =
+                "badge";
+
+            badge.textContent =
+                "REEL";
+
+
+            title.appendChild(
+                document.createTextNode(" ")
+            );
+
+            title.appendChild(
+                badge
             );
 
 
-        const meta =
-            document.createElement("div");
+            const meta =
+                document.createElement(
+                    "div"
+                );
 
-        meta.className = "meta";
+            meta.className =
+                "meta";
 
-        meta.textContent =
-            "❤️ " +
-            formatNumber(reel.likes) +
-            "   💬 " +
-            formatNumber(reel.comments) +
-            (
-                reel.views
-                ? "   ▶ " +
-                  formatNumber(reel.views)
-                : ""
+            meta.textContent =
+                "❤️ " +
+                formatNumber(
+                    reel.likes
+                ) +
+                "   💬 " +
+                formatNumber(
+                    reel.comments
+                ) +
+                (
+                    reel.views
+                    ? "   ▶ " +
+                      formatNumber(
+                          reel.views
+                      )
+                    : ""
+                );
+
+
+            const caption =
+                document.createElement(
+                    "div"
+                );
+
+            caption.className =
+                "caption";
+
+            caption.textContent =
+                reel.caption ||
+                "No caption available.";
+
+
+            const add =
+                document.createElement(
+                    "button"
+                );
+
+            add.className =
+                "primary";
+
+            add.textContent =
+                "+ ADD TO QUEUE";
+
+            add.onclick =
+                function(){
+
+                    addToQueue(index);
+
+                };
+
+
+            body.appendChild(
+                title
+            );
+
+            body.appendChild(
+                meta
+            );
+
+            body.appendChild(
+                caption
+            );
+
+            body.appendChild(
+                add
             );
 
 
-        const caption =
-            document.createElement("div");
+            if(reel.url){
 
-        caption.className = "caption";
+                const link =
+                    document.createElement(
+                        "a"
+                    );
 
-        caption.textContent =
-            reel.caption ||
-            "No caption available.";
+                link.className =
+                    "link";
 
+                link.href =
+                    reel.url;
 
-        const add =
-            document.createElement("button");
+                link.target =
+                    "_blank";
 
-        add.className = "primary";
+                link.rel =
+                    "noopener";
 
-        add.textContent =
-            "+ ADD TO QUEUE";
+                link.textContent =
+                    "Open original ↗";
 
-        add.onclick = function(){
+                body.appendChild(
+                    link
+                );
 
-            addToQueue(index);
-
-        };
-
-
-        body.appendChild(title);
-
-        body.appendChild(meta);
-
-        body.appendChild(caption);
-
-        body.appendChild(add);
+            }
 
 
-        if(reel.url){
+            card.appendChild(
+                img
+            );
 
-            const link =
-                document.createElement("a");
+            card.appendChild(
+                body
+            );
 
-            link.className = "link";
-
-            link.href = reel.url;
-
-            link.target = "_blank";
-
-            link.rel = "noopener";
-
-            link.textContent =
-                "Open original ↗";
-
-            body.appendChild(link);
+            container.appendChild(
+                card
+            );
 
         }
-
-
-        card.appendChild(img);
-
-        card.appendChild(body);
-
-        container.appendChild(card);
-
-    });
+    );
 
 }
 
@@ -1080,23 +1432,29 @@ function addToQueue(index){
     const reel =
         reels[index];
 
+
     if(!reel){
 
         return;
+
     }
+
 
     if(
         queue.some(
-            item => item.id === reel.id
+            item =>
+                item.id === reel.id
         )
     ){
 
         alert(
-            "This item is already in the queue."
+            "This Reel is already in the queue."
         );
 
         return;
+
     }
+
 
     queue.push({
 
@@ -1110,6 +1468,7 @@ function addToQueue(index){
 
     });
 
+
     renderQueue();
 
 }
@@ -1117,7 +1476,10 @@ function addToQueue(index){
 
 function removeFromQueue(index){
 
-    queue.splice(index,1);
+    queue.splice(
+        index,
+        1
+    );
 
     renderQueue();
 
@@ -1127,9 +1489,12 @@ function removeFromQueue(index){
 function renderQueue(){
 
     const container =
-        document.getElementById("queue");
+        document.getElementById(
+            "queue"
+        );
 
     container.innerHTML = "";
+
 
     if(!queue.length){
 
@@ -1137,111 +1502,173 @@ function renderQueue(){
             '<div class="empty">Queue is empty.</div>';
 
         return;
+
     }
 
-    queue.forEach(function(item,index){
 
-        const div =
-            document.createElement("div");
+    queue.forEach(
+        function(item,index){
 
-        div.className =
-            "queue-item";
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.className =
+                "queue-item";
 
 
-        const title =
-            document.createElement("strong");
+            const title =
+                document.createElement(
+                    "strong"
+                );
 
-        title.textContent =
-            "#" +
-            (index + 1) +
-            (
-                item.owner
-                ? " · @" + item.owner
-                : ""
+            title.textContent =
+                "#" +
+                (index + 1) +
+                (
+                    item.owner
+                    ? " · @" +
+                      item.owner
+                    : ""
+                );
+
+
+            const status =
+                document.createElement(
+                    "div"
+                );
+
+            status.className =
+                "meta";
+
+            status.textContent =
+                "Status: " +
+                item.status;
+
+
+            div.appendChild(
+                title
+            );
+
+            div.appendChild(
+                status
             );
 
 
-        const status =
-            document.createElement("div");
+            if(item.hook){
 
-        status.className =
-            "meta";
+                const hook =
+                    document.createElement(
+                        "div"
+                    );
 
-        status.textContent =
-            "Status: " +
-            item.status;
+                hook.className =
+                    "hook";
+
+                const hookTitle =
+                    document.createElement(
+                        "strong"
+                    );
+
+                hookTitle.textContent =
+                    "NEW HOOK";
+
+                hook.appendChild(
+                    hookTitle
+                );
+
+                hook.appendChild(
+                    document.createElement(
+                        "br"
+                    )
+                );
+
+                hook.appendChild(
+                    document.createTextNode(
+                        item.hook
+                    )
+                );
+
+                div.appendChild(
+                    hook
+                );
+
+            }
 
 
-        div.appendChild(title);
+            if(item.newCaption){
 
-        div.appendChild(status);
+                const caption =
+                    document.createElement(
+                        "div"
+                    );
+
+                caption.className =
+                    "hook";
+
+                const captionTitle =
+                    document.createElement(
+                        "strong"
+                    );
+
+                captionTitle.textContent =
+                    "NEW CAPTION";
+
+                caption.appendChild(
+                    captionTitle
+                );
+
+                caption.appendChild(
+                    document.createElement(
+                        "br"
+                    )
+                );
+
+                caption.appendChild(
+                    document.createTextNode(
+                        item.newCaption
+                    )
+                );
+
+                div.appendChild(
+                    caption
+                );
+
+            }
 
 
-        if(item.hook){
+            const remove =
+                document.createElement(
+                    "button"
+                );
 
-            const hook =
-                document.createElement("div");
+            remove.className =
+                "danger";
 
-            hook.className =
-                "hook";
+            remove.textContent =
+                "REMOVE";
 
-            hook.innerHTML =
-                "<strong>NEW HOOK</strong><br>";
+            remove.onclick =
+                function(){
 
-            hook.appendChild(
-                document.createTextNode(
-                    item.hook
-                )
+                    removeFromQueue(
+                        index
+                    );
+
+                };
+
+
+            div.appendChild(
+                remove
             );
 
-            div.appendChild(hook);
+            container.appendChild(
+                div
+            );
 
         }
-
-
-        if(item.newCaption){
-
-            const caption =
-                document.createElement("div");
-
-            caption.className =
-                "hook";
-
-            caption.innerHTML =
-                "<strong>NEW CAPTION</strong><br>";
-
-            caption.appendChild(
-                document.createTextNode(
-                    item.newCaption
-                )
-            );
-
-            div.appendChild(caption);
-
-        }
-
-
-        const remove =
-            document.createElement("button");
-
-        remove.className =
-            "danger";
-
-        remove.textContent =
-            "REMOVE";
-
-        remove.onclick = function(){
-
-            removeFromQueue(index);
-
-        };
-
-
-        div.appendChild(remove);
-
-        container.appendChild(div);
-
-    });
+    );
 
 }
 
@@ -1255,18 +1682,21 @@ async function remixAll(){
     if(!queue.length){
 
         alert(
-            "Add clips to the queue first."
+            "Add Reels to the queue first."
         );
 
         return;
     }
+
 
     const button =
         document.getElementById(
             "remixButton"
         );
 
-    button.disabled = true;
+    button.disabled =
+        true;
+
 
     for(
         let i = 0;
@@ -1275,29 +1705,44 @@ async function remixAll(){
     ){
 
         queue[i].status =
-            "Creating remix...";
+            "Creating remix concept...";
 
         renderQueue();
 
+
         await wait(350);
 
+
         queue[i].hook =
-            generateHook(queue[i]);
+            generateHook(
+                queue[i]
+            );
+
 
         queue[i].newCaption =
-            generateCaption(queue[i]);
+            generateCaption(
+                queue[i]
+            );
+
 
         queue[i].status =
             "Remix concept ready";
+
 
         renderQueue();
 
     }
 
-    button.disabled = false;
+
+    button.disabled =
+        false;
 
 }
 
+
+/* =========================================
+   HOOK GENERATOR
+   ========================================= */
 
 function generateHook(item){
 
@@ -1325,6 +1770,7 @@ function generateHook(item){
 
     ];
 
+
     return hooks[
         Math.floor(
             Math.random() *
@@ -1335,23 +1781,35 @@ function generateHook(item){
 }
 
 
+/* =========================================
+   CAPTION GENERATOR
+   ========================================= */
+
 function generateCaption(item){
 
     let original =
         item.caption || "";
+
 
     original =
         original
         .replace(/\s+/g," ")
         .trim();
 
-    if(original.length > 180){
+
+    if(
+        original.length > 180
+    ){
 
         original =
-            original.substring(0,180) +
+            original.substring(
+                0,
+                180
+            ) +
             "...";
 
     }
+
 
     return (
         "You need to see this 👀\n\n" +
@@ -1378,70 +1836,94 @@ function exportQueue(){
         );
 
         return;
+
     }
+
 
     let output =
         "CLIPPER EXPORT\n\n";
 
 
-    queue.forEach(function(item,index){
+    queue.forEach(
+        function(item,index){
 
-        output +=
-            "==============================\n";
+            output +=
+                "==============================\n";
 
-        output +=
-            "ITEM " +
-            (index + 1) +
-            "\n\n";
+            output +=
+                "ITEM " +
+                (index + 1) +
+                "\n\n";
 
-        output +=
-            "ORIGINAL:\n" +
-            (item.url || "") +
-            "\n\n";
+            output +=
+                "TYPE:\nREEL\n\n";
 
-        output +=
-            "NEW HOOK:\n" +
-            (item.hook || "") +
-            "\n\n";
+            output +=
+                "ORIGINAL:\n" +
+                (
+                    item.url || ""
+                ) +
+                "\n\n";
 
-        output +=
-            "NEW CAPTION:\n" +
-            (item.newCaption || "") +
-            "\n\n";
+            output +=
+                "NEW HOOK:\n" +
+                (
+                    item.hook || ""
+                ) +
+                "\n\n";
 
-    });
+            output +=
+                "NEW CAPTION:\n" +
+                (
+                    item.newCaption || ""
+                ) +
+                "\n\n";
+
+        }
+    );
 
 
     const blob =
         new Blob(
             [output],
             {
-                type:"text/plain;charset=utf-8"
+                type:
+                    "text/plain;charset=utf-8"
             }
         );
 
 
     const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+            blob
+        );
 
 
     const link =
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
 
-    link.href = url;
+    link.href =
+        url;
 
     link.download =
         "clipper-export.txt";
 
 
-    document.body.appendChild(link);
+    document.body.appendChild(
+        link
+    );
 
     link.click();
 
     link.remove();
 
-    URL.revokeObjectURL(url);
+
+    URL.revokeObjectURL(
+        url
+    );
 
 }
 
@@ -1454,10 +1936,11 @@ function clearResults(){
 
     reels = [];
 
+
     document.getElementById(
         "results"
     ).innerHTML =
-        '<div class="empty">Your inspiration clips will appear here.</div>';
+        '<div class="empty">Your 10 Reels will appear here.</div>';
 
 }
 
@@ -1469,24 +1952,30 @@ function clearResults(){
 function shuffle(array){
 
     return array
-        .map(function(value){
+        .map(
+            function(value){
 
-            return {
-                value:value,
-                sort:Math.random()
-            };
+                return {
+                    value:value,
+                    sort:Math.random()
+                };
 
-        })
-        .sort(function(a,b){
+            }
+        )
+        .sort(
+            function(a,b){
 
-            return a.sort - b.sort;
+                return a.sort - b.sort;
 
-        })
-        .map(function(item){
+            }
+        )
+        .map(
+            function(item){
 
-            return item.value;
+                return item.value;
 
-        });
+            }
+        );
 
 }
 
@@ -1496,7 +1985,10 @@ function formatNumber(number){
     number =
         Number(number) || 0;
 
-    if(number >= 1000000){
+
+    if(
+        number >= 1000000
+    ){
 
         return (
             number / 1000000
@@ -1504,7 +1996,10 @@ function formatNumber(number){
 
     }
 
-    if(number >= 1000){
+
+    if(
+        number >= 1000
+    ){
 
         return (
             number / 1000
@@ -1512,7 +2007,10 @@ function formatNumber(number){
 
     }
 
-    return String(number);
+
+    return String(
+        number
+    );
 
 }
 
@@ -1522,7 +2020,10 @@ function wait(ms){
     return new Promise(
         function(resolve){
 
-            setTimeout(resolve,ms);
+            setTimeout(
+                resolve,
+                ms
+            );
 
         }
     );
