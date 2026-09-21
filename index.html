@@ -225,6 +225,12 @@ button:disabled{
   margin-top:10px;
 }
 
+.audio{
+  color:#aaa0ff;
+  font-size:11px;
+  margin-top:8px;
+}
+
 .actions{
   display:flex;
   gap:8px;
@@ -287,6 +293,17 @@ button:disabled{
   line-height:1.5;
 }
 
+.info-box{
+  margin-top:14px;
+  padding:12px 14px;
+  background:#1b1b22;
+  border:1px solid #292933;
+  border-radius:10px;
+  color:#a5a5b1;
+  font-size:12px;
+  line-height:1.5;
+}
+
 .remix-output{
   margin-top:10px;
   padding:10px;
@@ -295,17 +312,6 @@ button:disabled{
   color:#c8c8d2;
   font-size:12px;
   line-height:1.4;
-}
-
-.history-info{
-  margin-top:12px;
-  padding:11px 13px;
-  background:#1b1b22;
-  border:1px solid #292933;
-  border-radius:10px;
-  color:#a5a5b1;
-  font-size:12px;
-  line-height:1.5;
 }
 
 @media(max-width:600px){
@@ -343,7 +349,6 @@ button:disabled{
     align-items:flex-start;
     flex-direction:column;
   }
-
 }
 </style>
 </head>
@@ -352,308 +357,319 @@ button:disabled{
 
 <div class="container">
 
-  <h1>CLIPPER</h1>
+<h1>CLIPPER</h1>
 
-  <div class="subtitle">
-    Turn creator inspiration into your own content ideas.
-  </div>
-
-
-  <!-- APIFY -->
-
-  <div class="card">
-
-    <h2>1. Apify connection</h2>
-
-    <input
-      id="apifyToken"
-      type="password"
-      placeholder="Paste your Apify API token"
-    >
-
-    <div class="row" style="margin-top:10px;">
-
-      <button
-        class="btn-primary"
-        id="saveApifyBtn"
-        onclick="saveAndTestApify()"
-      >
-        SAVE &amp; TEST CONNECTION
-      </button>
-
-    </div>
-
-    <div
-      id="apifyStatus"
-      class="status"
-    >
-      No connection tested yet.
-    </div>
-
-    <div
-      class="small"
-      style="margin-top:10px;"
-    >
-      Your token is stored locally in this browser.
-    </div>
-
-  </div>
+<div class="subtitle">
+Turn creator inspiration into your own content ideas.
+</div>
 
 
-  <!-- ACCOUNTS -->
+<!-- =====================================================
+     APIFY
+===================================================== -->
 
-  <div class="card">
+<div class="card">
 
-    <h2>2. Inspiration accounts</h2>
+<h2>1. Apify connection</h2>
 
-    <div class="row">
+<input
+  id="apifyToken"
+  type="password"
+  placeholder="Paste your Apify API token"
+>
 
-      <input
-        id="accountInput"
-        placeholder="@instagramaccount"
-        style="flex:1;min-width:220px;"
-      >
+<div class="row" style="margin-top:10px;">
 
-      <button
-        class="btn-dark"
-        onclick="addAccount()"
-      >
-        + ADD ACCOUNT
-      </button>
+<button
+  class="btn-primary"
+  id="saveApifyBtn"
+  onclick="saveAndTestApify()"
+>
+SAVE &amp; TEST CONNECTION
+</button>
 
-    </div>
+</div>
 
-    <div
-      id="accountList"
-      class="account-list"
-    ></div>
+<div
+  id="apifyStatus"
+  class="status"
+>
+No connection tested yet.
+</div>
 
-  </div>
+<div class="small" style="margin-top:10px;">
+Your token is stored locally in this browser.
+</div>
 
-
-  <!-- DAILY INSPIRATION -->
-
-  <div class="card">
-
-    <div class="section-top">
-
-      <div>
-
-        <h2 style="margin-bottom:5px;">
-          3. Daily inspiration — REELS ONLY
-        </h2>
-
-        <div class="small">
-          Randomly select 10 Reels from the available history of your inspiration accounts.
-        </div>
-
-      </div>
-
-      <button
-        class="btn-purple"
-        id="randomBtn"
-        onclick="loadRandom10()"
-      >
-        🎲 GIVE ME 10
-      </button>
-
-    </div>
+</div>
 
 
-    <div class="history-info">
+<!-- =====================================================
+     ACCOUNTS
+===================================================== -->
 
-      🕘 <strong>Historical random mode:</strong>
-      CLIPPER loads a large Reel history first and only then
-      randomly selects 10. It is not limited to the latest 24 hours.
+<div class="card">
 
-    </div>
+<h2>2. Inspiration accounts</h2>
 
+<div class="row">
 
-    <div
-      id="results"
-      class="results"
-    >
+<input
+  id="accountInput"
+  placeholder="@instagramaccount"
+  style="flex:1;min-width:220px;"
+>
 
-      <div class="empty">
-        No Reels loaded yet.
-      </div>
+<button
+  class="btn-dark"
+  onclick="addAccount()"
+>
++ ADD ACCOUNT
+</button>
 
-    </div>
+</div>
 
-  </div>
+<div
+  id="accountList"
+  class="account-list"
+></div>
 
-
-  <!-- QUEUE -->
-
-  <div class="card">
-
-    <div class="section-top">
-
-      <div>
-
-        <h2 style="margin-bottom:5px;">
-          4. Remix queue
-        </h2>
-
-        <div class="small">
-          Reels selected for remixing.
-        </div>
-
-      </div>
+</div>
 
 
-      <div class="row">
+<!-- =====================================================
+     DAILY INSPIRATION
+===================================================== -->
 
-        <button
-          class="btn-purple"
-          onclick="remixAll()"
-        >
-          ✨ REMIX ALL
-        </button>
+<div class="card">
 
-        <button
-          class="btn-dark"
-          onclick="exportQueue()"
-        >
-          📦 EXPORT QUEUE
-        </button>
+<div class="section-top">
 
-      </div>
+<div>
 
-    </div>
+<h2 style="margin-bottom:5px;">
+3. Daily inspiration — REELS ONLY
+</h2>
+
+<div class="small">
+Pick 10 random Reels from the available history of your inspiration accounts.
+</div>
+
+</div>
+
+<button
+  class="btn-purple"
+  id="randomBtn"
+  onclick="loadRandom10()"
+>
+🎲 GIVE ME 10
+</button>
+
+</div>
 
 
-    <div
-      id="queue"
-      class="queue"
-    >
+<div class="info-box">
 
-      <div class="empty">
-        Queue is empty.
-      </div>
+🕘 <strong>Historical random mode:</strong>
+CLIPPER requests up to <strong>1,000 Reels per account</strong>,
+then randomly selects 10 from the returned historical pool.
+There is no 24-hour or 7-day date filter.
 
-    </div>
+</div>
 
-  </div>
+
+<div
+  id="results"
+  class="results"
+>
+
+<div class="empty">
+No Reels loaded yet.
+</div>
+
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     QUEUE
+===================================================== -->
+
+<div class="card">
+
+<div class="section-top">
+
+<div>
+
+<h2 style="margin-bottom:5px;">
+4. Remix queue
+</h2>
+
+<div class="small">
+Reels selected for remixing.
+</div>
+
+</div>
+
+<div class="row">
+
+<button
+  class="btn-purple"
+  onclick="remixAll()"
+>
+✨ REMIX ALL
+</button>
+
+<button
+  class="btn-dark"
+  onclick="exportQueue()"
+>
+📦 EXPORT QUEUE
+</button>
+
+</div>
+
+</div>
+
+
+<div
+  id="queue"
+  class="queue"
+>
+
+<div class="empty">
+Queue is empty.
+</div>
+
+</div>
+
+</div>
 
 </div>
 
 
 <script>
 
-
-/* =========================================================
-   SETTINGS
-========================================================= */
+/* =====================================================
+   STORAGE
+===================================================== */
 
 const APIFY_TOKEN_KEY =
-  "clipper_apify_token";
+"clipper_apify_token";
 
 const ACCOUNTS_KEY =
-  "clipper_accounts";
+"clipper_accounts";
 
 const QUEUE_KEY =
-  "clipper_queue";
+"clipper_queue";
 
 
 /*
  * IMPORTANT:
  *
- * We intentionally load a LARGE history.
+ * We ask Apify for a large historical pool.
  *
- * The scraper pages backwards through the profile
- * until it reaches this limit or the account has
- * no more available Reels.
+ * The official Instagram Scraper supports:
  *
- * 1000 is the maximum supported by the selected
- * scraper according to its current documentation.
+ * resultsType: "reels"
+ *
+ * and up to:
+ *
+ * resultsLimit: 1000
+ *
+ * We intentionally DO NOT use:
+ *
+ * onlyPostsNewerThan
+ *
+ * so there is no 24-hour restriction.
  */
+
 const HISTORICAL_REEL_LIMIT = 1000;
 
 
 let queue = [];
 
 
-/* =========================================================
+/* =====================================================
    INIT
-========================================================= */
+===================================================== */
 
 document.addEventListener(
-  "DOMContentLoaded",
-  function(){
+"DOMContentLoaded",
+function(){
 
-    const token =
-      localStorage.getItem(
-        APIFY_TOKEN_KEY
-      );
+  const token =
+  localStorage.getItem(
+    APIFY_TOKEN_KEY
+  );
 
-    if(token){
+  if(token){
 
-      document.getElementById(
-        "apifyToken"
-      ).value = token;
-
-    }
-
-
-    renderAccounts();
-
-
-    try{
-
-      queue =
-        JSON.parse(
-          localStorage.getItem(
-            QUEUE_KEY
-          ) || "[]"
-        );
-
-    }catch(e){
-
-      queue = [];
-
-    }
-
-
-    renderQueue();
+    document.getElementById(
+      "apifyToken"
+    ).value = token;
 
   }
+
+  renderAccounts();
+
+
+  try{
+
+    queue =
+    JSON.parse(
+      localStorage.getItem(
+        QUEUE_KEY
+      ) || "[]"
+    );
+
+  }catch(e){
+
+    queue = [];
+
+  }
+
+
+  renderQueue();
+
+}
 );
 
 
-/* =========================================================
+/* =====================================================
    APIFY CONNECTION
-========================================================= */
+===================================================== */
 
 async function saveAndTestApify(){
 
   const input =
-    document.getElementById(
-      "apifyToken"
-    );
+  document.getElementById(
+    "apifyToken"
+  );
 
   const status =
-    document.getElementById(
-      "apifyStatus"
-    );
+  document.getElementById(
+    "apifyStatus"
+  );
 
   const button =
-    document.getElementById(
-      "saveApifyBtn"
-    );
+  document.getElementById(
+    "saveApifyBtn"
+  );
 
 
   const token =
-    input.value.trim();
+  input.value.trim();
 
 
   if(!token){
 
     status.textContent =
-      "Please enter your Apify token.";
+    "Please enter your Apify token.";
 
     status.className =
-      "status error";
+    "status error";
 
     return;
 
@@ -663,23 +679,23 @@ async function saveAndTestApify(){
   button.disabled = true;
 
   button.textContent =
-    "TESTING...";
+  "TESTING...";
 
 
   status.textContent =
-    "Testing Apify connection...";
+  "Testing Apify connection...";
 
   status.className =
-    "status";
+  "status";
 
 
   try{
 
     const response =
-      await fetch(
-        "https://api.apify.com/v2/users/me?token=" +
-        encodeURIComponent(token)
-      );
+    await fetch(
+      "https://api.apify.com/v2/users/me?token=" +
+      encodeURIComponent(token)
+    );
 
 
     if(!response.ok){
@@ -687,10 +703,8 @@ async function saveAndTestApify(){
       let message = "";
 
       try{
-
         message =
-          await response.text();
-
+        await response.text();
       }catch(e){}
 
 
@@ -699,8 +713,8 @@ async function saveAndTestApify(){
         response.status +
         (
           message
-            ? ": " + message
-            : ""
+          ? ": " + message
+          : ""
         )
       );
 
@@ -708,7 +722,7 @@ async function saveAndTestApify(){
 
 
     const data =
-      await response.json();
+    await response.json();
 
 
     localStorage.setItem(
@@ -718,19 +732,19 @@ async function saveAndTestApify(){
 
 
     const username =
-      data &&
-      data.data &&
-      data.data.username
-        ? data.data.username
-        : "connected user";
+    data &&
+    data.data &&
+    data.data.username
+    ? data.data.username
+    : "connected user";
 
 
     status.textContent =
-      "✓ Apify connection is active — @" +
-      username;
+    "✓ Apify connection is active — @" +
+    username;
 
     status.className =
-      "status ok";
+    "status ok";
 
 
   }catch(error){
@@ -739,11 +753,11 @@ async function saveAndTestApify(){
 
 
     status.textContent =
-      "✕ Connection failed: " +
-      error.message;
+    "✕ Connection failed: " +
+    error.message;
 
     status.className =
-      "status error";
+    "status error";
 
 
   }finally{
@@ -751,16 +765,16 @@ async function saveAndTestApify(){
     button.disabled = false;
 
     button.textContent =
-      "SAVE & TEST CONNECTION";
+    "SAVE & TEST CONNECTION";
 
   }
 
 }
 
 
-/* =========================================================
+/* =====================================================
    ACCOUNTS
-========================================================= */
+===================================================== */
 
 function getAccounts(){
 
@@ -781,7 +795,9 @@ function getAccounts(){
 }
 
 
-function saveAccounts(accounts){
+function saveAccounts(
+accounts
+){
 
   localStorage.setItem(
     ACCOUNTS_KEY,
@@ -794,27 +810,27 @@ function saveAccounts(accounts){
 function addAccount(){
 
   const input =
-    document.getElementById(
-      "accountInput"
-    );
+  document.getElementById(
+    "accountInput"
+  );
 
 
   let username =
-    input.value.trim();
+  input.value.trim();
 
 
   username =
-    username.replace(
-      /^@+/,
-      ""
-    );
+  username.replace(
+    /^@+/,
+    ""
+  );
 
 
   username =
-    username.replace(
-      /\/+$/,
-      ""
-    );
+  username.replace(
+    /\/+$/,
+    ""
+  );
 
 
   if(!username){
@@ -829,20 +845,20 @@ function addAccount(){
 
 
   const accounts =
-    getAccounts();
+  getAccounts();
 
 
   const exists =
-    accounts.some(
-      function(account){
+  accounts.some(
+    function(account){
 
-        return (
-          account.toLowerCase() ===
-          username.toLowerCase()
-        );
+      return (
+        account.toLowerCase() ===
+        username.toLowerCase()
+      );
 
-      }
-    );
+    }
+  );
 
 
   if(exists){
@@ -856,7 +872,9 @@ function addAccount(){
   }
 
 
-  accounts.push(username);
+  accounts.push(
+    username
+  );
 
 
   saveAccounts(
@@ -872,10 +890,12 @@ function addAccount(){
 }
 
 
-function removeAccount(index){
+function removeAccount(
+index
+){
 
   const accounts =
-    getAccounts();
+  getAccounts();
 
 
   accounts.splice(
@@ -897,22 +917,23 @@ function removeAccount(index){
 function renderAccounts(){
 
   const container =
-    document.getElementById(
-      "accountList"
-    );
+  document.getElementById(
+    "accountList"
+  );
 
 
   const accounts =
-    getAccounts();
+  getAccounts();
 
 
-  container.innerHTML = "";
+  container.innerHTML =
+  "";
 
 
   if(!accounts.length){
 
     container.innerHTML =
-      '<span class="small">No accounts added yet.</span>';
+    '<span class="small">No accounts added yet.</span>';
 
     return;
 
@@ -923,23 +944,23 @@ function renderAccounts(){
     function(account,index){
 
       const item =
-        document.createElement(
-          "div"
-        );
+      document.createElement(
+        "div"
+      );
 
 
       item.className =
-        "account";
+      "account";
 
 
       item.innerHTML =
-        "<span>@" +
-        escapeHtml(account) +
-        "</span>" +
+      "<span>@" +
+      escapeHtml(account) +
+      "</span>" +
 
-        '<button onclick="removeAccount(' +
-        index +
-        ')">×</button>';
+      '<button onclick="removeAccount(' +
+      index +
+      ')">×</button>';
 
 
       container.appendChild(
@@ -952,64 +973,63 @@ function renderAccounts(){
 }
 
 
-/* =========================================================
-   STRICT REEL DETECTION
-========================================================= */
+/* =====================================================
+   REEL DETECTION
+===================================================== */
 
-function isStrictReel(item){
+function isReel(
+item
+){
+
+  /*
+   * The official actor is already asked for:
+   *
+   * resultsType = reels
+   *
+   * We still keep a safety filter.
+   */
+
 
   const url =
-    String(
-      item.url ||
-      item.postUrl ||
-      item.post_url ||
-      item.instagramUrl ||
-      ""
-    ).toLowerCase();
+  String(
+    item.url ||
+    item.postUrl ||
+    item.post_url ||
+    ""
+  ).toLowerCase();
 
 
   const postType =
-    String(
-      item.postType ||
-      item.post_type ||
-      ""
-    ).toLowerCase();
-
-
-  const productType =
-    String(
-      item.productType ||
-      item.product_type ||
-      ""
-    ).toLowerCase();
-
-
-  const mediaType =
-    String(
-      item.mediaType ||
-      item.media_type ||
-      ""
-    ).toLowerCase();
+  String(
+    item.postType ||
+    item.post_type ||
+    ""
+  ).toLowerCase();
 
 
   const type =
-    String(
-      item.type ||
-      ""
-    ).toLowerCase();
+  String(
+    item.type ||
+    ""
+  ).toLowerCase();
+
+
+  const productType =
+  String(
+    item.productType ||
+    item.product_type ||
+    ""
+  ).toLowerCase();
 
 
   if(
-    url.includes("/reel/")
+    url.includes(
+      "/reel/"
+    )
   ){
-    return true;
-  }
 
-
-  if(
-    url.includes("/reels/")
-  ){
     return true;
+
   }
 
 
@@ -1017,7 +1037,19 @@ function isStrictReel(item){
     postType === "reel" ||
     postType === "reels"
   ){
+
     return true;
+
+  }
+
+
+  if(
+    type === "reel" ||
+    type === "reels"
+  ){
+
+    return true;
+
   }
 
 
@@ -1026,23 +1058,9 @@ function isStrictReel(item){
     productType === "reel" ||
     productType === "reels"
   ){
+
     return true;
-  }
 
-
-  if(
-    mediaType === "reel" ||
-    mediaType === "reels"
-  ){
-    return true;
-  }
-
-
-  if(
-    type === "reel" ||
-    type === "reels"
-  ){
-    return true;
   }
 
 
@@ -1051,149 +1069,131 @@ function isStrictReel(item){
 }
 
 
-/* =========================================================
-   NORMALIZE REEL
-========================================================= */
+/* =====================================================
+   NORMALIZE
+===================================================== */
 
-function normalizeReel(item){
+function normalizeReel(
+item
+){
 
   return {
 
     id:
-      item.id ||
-      item.postId ||
-      item.pk ||
-      item.shortCode ||
-      item.shortcode ||
-      item.code ||
-      item.url ||
-      item.postUrl ||
-      "",
+    item.id ||
+    item.postId ||
+    item.pk ||
+    item.shortCode ||
+    item.shortcode ||
+    item.code ||
+    item.url ||
+    item.postUrl ||
+    "",
 
 
     url:
-      item.url ||
-      item.postUrl ||
-      item.post_url ||
-      "",
+    item.url ||
+    item.postUrl ||
+    item.post_url ||
+    "",
 
 
     image:
-      item.thumbnailUrl ||
-      item.thumbnail_url ||
-      item.imageUrl ||
-      item.image_url ||
-      item.displayUrl ||
-      item.display_url ||
-      item.image ||
-      "",
+    item.displayUrl ||
+    item.display_url ||
+    item.thumbnailUrl ||
+    item.thumbnail_url ||
+    item.imageUrl ||
+    item.image_url ||
+    item.image ||
+    "",
 
 
     video:
-      item.videoUrl ||
-      item.video_url ||
-      item.video ||
-      "",
+    item.videoUrl ||
+    item.video_url ||
+    item.video ||
+    "",
 
 
     caption:
-      item.caption ||
-      item.text ||
-      "",
+    item.caption ||
+    item.text ||
+    "",
 
 
     likes:
-      item.likeCount ??
-      item.likesCount ??
-      item.likes ??
-      0,
+    item.likesCount ??
+    item.likeCount ??
+    item.likes ??
+    0,
 
 
     comments:
-      item.commentCount ??
-      item.commentsCount ??
-      item.comments ??
-      0,
+    item.commentsCount ??
+    item.commentCount ??
+    item.comments ??
+    0,
 
 
     views:
-      item.playCount ??
-      item.videoPlayCount ??
-      item.viewCount ??
-      item.videoViewCount ??
-      item.views ??
-      0,
+    item.videoViewCount ??
+    item.videoPlayCount ??
+    item.playCount ??
+    item.viewCount ??
+    item.views ??
+    0,
 
 
     duration:
-      item.durationSeconds ??
-      item.duration ??
-      item.videoDuration ??
-      null,
+    item.durationSeconds ??
+    item.duration ??
+    null,
 
 
     timestamp:
-      item.createdAt ||
-      item.takenAtIso ||
-      item.timestamp ||
-      item.takenAt ||
-      item.date ||
-      "",
+    item.timestamp ||
+    item.takenAt ||
+    item.createdAt ||
+    item.date ||
+    "",
 
 
     owner:
-      item.authorUsername ||
-      item.ownerUsername ||
-      item.username ||
-      item.owner?.username ||
-      "",
+    item.ownerUsername ||
+    item.authorUsername ||
+    item.username ||
+    item.owner?.username ||
+    "",
 
 
     musicTitle:
-      item.musicTitle ||
-      item.audioTitle ||
-      item.audioName ||
-      "",
+    item.musicTitle ||
+    item.audioTitle ||
+    item.audioName ||
+    "",
 
 
     musicArtist:
-      item.musicArtist ||
-      item.audioArtist ||
-      "",
-
-
-    productType:
-      item.productType ||
-      item.product_type ||
-      "",
-
-
-    mediaType:
-      item.mediaType ||
-      item.media_type ||
-      "",
-
-
-    type:
-      item.type ||
-      item.postType ||
-      ""
+    item.musicArtist ||
+    item.audioArtist ||
+    ""
 
   };
 
 }
 
 
-/* =========================================================
-   LOAD HISTORICAL REELS
-========================================================= */
+/* =====================================================
+   LOAD RANDOM HISTORICAL REELS
+===================================================== */
 
 async function loadRandom10(){
 
   const token =
-    localStorage.getItem(
-      APIFY_TOKEN_KEY
-    );
+  localStorage.getItem(
+    APIFY_TOKEN_KEY
+  );
 
 
   if(!token){
@@ -1208,7 +1208,7 @@ async function loadRandom10(){
 
 
   const accounts =
-    getAccounts();
+  getAccounts();
 
 
   if(!accounts.length){
@@ -1223,28 +1223,29 @@ async function loadRandom10(){
 
 
   const button =
-    document.getElementById(
-      "randomBtn"
-    );
+  document.getElementById(
+    "randomBtn"
+  );
 
 
   const results =
-    document.getElementById(
-      "results"
-    );
+  document.getElementById(
+    "results"
+  );
 
 
   button.disabled = true;
 
   button.textContent =
-    "⏳ LOADING HISTORY...";
+  "⏳ LOADING HISTORY...";
 
 
   results.innerHTML =
-    '<div class="empty">' +
-    "Loading historical Reels...<br><br>" +
-    "CLIPPER is going backwards through the account's Reel history." +
-    "</div>";
+  '<div class="empty">' +
+  "Loading historical Reels..." +
+  "<br><br>" +
+  "CLIPPER is collecting the Reel history first, then selecting 10 randomly." +
+  "</div>";
 
 
   try{
@@ -1253,12 +1254,19 @@ async function loadRandom10(){
 
 
     /*
-     * Load each account.
+     * IMPORTANT:
      *
-     * We deliberately use a dedicated Reel scraper
-     * with pagination instead of a normal Instagram
-     * feed scraper.
+     * Use the SAME scraper that worked
+     * in your previous version.
+     *
+     * We are only changing:
+     *
+     * resultsType = reels
+     * resultsLimit = 1000
+     *
+     * There is NO date filter.
      */
+
     for(
       let accountIndex = 0;
       accountIndex < accounts.length;
@@ -1266,14 +1274,14 @@ async function loadRandom10(){
     ){
 
       const username =
-        String(
-          accounts[accountIndex]
-        )
-        .replace(
-          /^@+/,
-          ""
-        )
-        .trim();
+      String(
+        accounts[accountIndex]
+      )
+      .replace(
+        /^@+/,
+        ""
+      )
+      .trim();
 
 
       if(!username){
@@ -1282,66 +1290,63 @@ async function loadRandom10(){
 
 
       button.textContent =
-        "⏳ @" +
-        username +
-        " — HISTORY...";
+      "⏳ @" +
+      username +
+      " — LOADING REELS...";
 
 
-      /*
-       * Dedicated Instagram Reel scraper.
-       *
-       * It pages through the profile's Reel feed
-       * instead of simply returning the latest page.
-       */
       const endpoint =
-        "https://api.apify.com/v2/acts/memo23~instagram-reel-scraper/run-sync-get-dataset-items?token=" +
-        encodeURIComponent(token);
+      "https://api.apify.com/v2/acts/omaraw~instagram-scraper/run-sync-get-dataset-items?token=" +
+      encodeURIComponent(token);
 
 
       const input = {
 
-        usernames:[
-          username
+        directUrls:[
+          "https://www.instagram.com/" +
+          username +
+          "/"
         ],
 
-        /*
-         * Large historical sample.
-         *
-         * The actor starts with newest Reels and
-         * keeps paging backwards until this number
-         * is reached or the profile has no more Reels.
-         */
-        resultsLimit:
-          HISTORICAL_REEL_LIMIT
 
         /*
-         * IMPORTANT:
+         * THIS IS THE CRITICAL SETTING.
          *
-         * No onlyPostsNewerThan.
-         *
-         * Therefore we DO NOT tell the scraper
-         * to stop at 24 hours, 30 days, 6 months etc.
+         * We do NOT request "posts".
+         * We request ONLY "reels".
          */
+
+        resultsType:
+        "reels",
+
+
+        /*
+         * Large historical pool.
+         */
+
+        resultsLimit:
+        HISTORICAL_REEL_LIMIT
 
       };
 
 
       const response =
-        await fetch(
-          endpoint,
-          {
+      await fetch(
+        endpoint,
+        {
+          method:"POST",
 
-            method:"POST",
+          headers:{
+            "Content-Type":
+            "application/json"
+          },
 
-            headers:{
-              "Content-Type":"application/json"
-            },
-
-            body:
-              JSON.stringify(input)
-
-          }
-        );
+          body:
+          JSON.stringify(
+            input
+          )
+        }
+      );
 
 
       if(!response.ok){
@@ -1351,7 +1356,7 @@ async function loadRandom10(){
         try{
 
           errorText =
-            await response.text();
+          await response.text();
 
         }catch(e){}
 
@@ -1363,8 +1368,8 @@ async function loadRandom10(){
           response.status +
           (
             errorText
-              ? " — " + errorText
-              : ""
+            ? " — " + errorText
+            : ""
           )
         );
 
@@ -1372,53 +1377,74 @@ async function loadRandom10(){
 
 
       const data =
-        await response.json();
+      await response.json();
 
 
       if(!Array.isArray(data)){
+
         continue;
+
       }
 
 
       /*
-       * Normalize + strict filter.
+       * Safety filter.
+       *
+       * We ONLY accept actual Reels.
        */
       const reels =
-        data
-          .filter(
-            isStrictReel
-          )
-          .map(
-            normalizeReel
-          )
-          .filter(
-            function(reel){
+      data
+      .filter(
+        isReel
+      )
+      .map(
+        normalizeReel
+      )
+      .filter(
+        function(reel){
 
-              /*
-               * Final URL protection.
-               */
-              if(reel.url){
+          if(!reel.url){
 
-                const url =
-                  reel.url.toLowerCase();
+            return true;
+
+          }
 
 
-                if(
-                  url.includes("/p/") ||
-                  url.includes("/tv/")
-                ){
-
-                  return false;
-
-                }
-
-              }
+          const url =
+          reel.url.toLowerCase();
 
 
-              return true;
+          /*
+           * Classic posts are /p/
+           * and must NEVER enter the pool.
+           */
 
-            }
-          );
+          if(
+            url.includes(
+              "/p/"
+            )
+          ){
+
+            return false;
+
+          }
+
+
+          if(
+            url.includes(
+              "/tv/"
+            )
+          ){
+
+            return false;
+
+          }
+
+
+          return true;
+
+        }
+      );
 
 
       allReels.push(
@@ -1429,12 +1455,13 @@ async function loadRandom10(){
 
 
     /*
-     * Remove duplicate Reels.
+     * Remove duplicates.
      */
+
     const unique = [];
 
     const seen =
-      new Set();
+    new Set();
 
 
     for(
@@ -1442,8 +1469,8 @@ async function loadRandom10(){
     ){
 
       const id =
-        reel.id ||
-        reel.url;
+      reel.id ||
+      reel.url;
 
 
       if(!id){
@@ -1452,17 +1479,22 @@ async function loadRandom10(){
 
 
       const key =
-        String(id);
+      String(id);
 
 
       if(
         seen.has(key)
       ){
+
         continue;
+
       }
 
 
-      seen.add(key);
+      seen.add(
+        key
+      );
+
 
       unique.push(
         reel
@@ -1472,12 +1504,14 @@ async function loadRandom10(){
 
 
     /*
-     * IMPORTANT:
+     * RANDOMIZE THE ENTIRE HISTORICAL POOL.
      *
-     * We now have the historical pool.
+     * This is the important part.
      *
-     * ONLY NOW do we randomize.
+     * We don't take the first 10.
+     * We shuffle everything first.
      */
+
     for(
       let i = unique.length - 1;
       i > 0;
@@ -1485,16 +1519,17 @@ async function loadRandom10(){
     ){
 
       const j =
-        Math.floor(
-          Math.random() *
-          (i + 1)
-        );
+      Math.floor(
+        Math.random() *
+        (i + 1)
+      );
 
 
       [
         unique[i],
         unique[j]
-      ] = [
+      ] =
+      [
         unique[j],
         unique[i]
       ];
@@ -1503,17 +1538,20 @@ async function loadRandom10(){
 
 
     /*
-     * Pick 10 RANDOM historical Reels.
+     * Finally:
+     *
+     * RANDOM 10
      */
+
     const selected =
-      unique.slice(
-        0,
-        10
-      );
+    unique.slice(
+      0,
+      10
+    );
 
 
     window.clipperResults =
-      selected;
+    selected;
 
 
     renderResults(
@@ -1521,15 +1559,25 @@ async function loadRandom10(){
     );
 
 
-    if(!selected.length){
+    if(
+      !selected.length
+    ){
 
       results.innerHTML =
-        '<div class="empty">' +
-        "No historical Reels were detected." +
-        "<br><br>" +
-        "The account may be private, unavailable, " +
-        "or the scraper could not access its Reel history." +
-        "</div>";
+      '<div class="empty">' +
+
+      "<strong>No Reels were returned.</strong>" +
+
+      "<br><br>" +
+
+      "The Apify actor did not return Reel rows for this account. " +
+
+      "<br><br>" +
+
+      "This is different from the previous version because " +
+      "the previous version requested normal posts and then filtered them locally." +
+
+      "</div>";
 
     }
 
@@ -1542,49 +1590,54 @@ async function loadRandom10(){
 
 
     results.innerHTML =
-      '<div class="empty">' +
-      "<strong>Could not load historical Reels.</strong>" +
-      "<br><br>" +
-      escapeHtml(
-        error.message
-      ) +
-      "</div>";
+    '<div class="empty">' +
 
+    "<strong>Could not load historical Reels.</strong>" +
+
+    "<br><br>" +
+
+    escapeHtml(
+      error.message
+    ) +
+
+    "</div>";
 
   }finally{
 
     button.disabled = false;
 
     button.textContent =
-      "🎲 GIVE ME 10";
+    "🎲 GIVE ME 10";
 
   }
 
 }
 
 
-/* =========================================================
+/* =====================================================
    RENDER RESULTS
-========================================================= */
+===================================================== */
 
-function renderResults(items){
+function renderResults(
+items
+){
 
   const container =
-    document.getElementById(
-      "results"
-    );
+  document.getElementById(
+    "results"
+  );
 
 
   container.innerHTML =
-    "";
+  "";
 
 
   if(!items.length){
 
     container.innerHTML =
-      '<div class="empty">' +
-      "No Reels available." +
-      "</div>";
+    '<div class="empty">' +
+    "No Reels available." +
+    "</div>";
 
     return;
 
@@ -1595,97 +1648,70 @@ function renderResults(items){
     function(reel,index){
 
       const card =
-        document.createElement(
-          "div"
-        );
+      document.createElement(
+        "div"
+      );
 
 
       card.className =
-        "reel";
+      "reel";
 
 
       const image =
-        reel.image ||
-        "";
-
-
-      const caption =
-        reel.caption ||
-        "No caption";
+      reel.image ||
+      "";
 
 
       const owner =
-        reel.owner ||
-        "Instagram";
+      reel.owner ||
+      "Instagram";
+
+
+      const caption =
+      reel.caption ||
+      "No caption";
 
 
       const likes =
-        formatNumber(
-          reel.likes
-        );
+      formatNumber(
+        reel.likes
+      );
 
 
       const comments =
-        formatNumber(
-          reel.comments
-        );
+      formatNumber(
+        reel.comments
+      );
 
 
       const views =
-        formatNumber(
-          reel.views
-        );
+      formatNumber(
+        reel.views
+      );
 
 
-      let durationText =
-        "";
+      const duration =
+      reel.duration !== null &&
+      reel.duration !== undefined
+      ? formatDuration(
+          reel.duration
+        )
+      : "";
 
 
-      if(
-        reel.duration !== null &&
-        reel.duration !== undefined
-      ){
-
-        const seconds =
-          Number(
-            reel.duration
-          );
-
-
-        if(
-          Number.isFinite(seconds)
-        ){
-
-          durationText =
-            formatDuration(
-              seconds
-            );
-
-        }
-
-      }
-
-
-      let audioText =
-        "";
-
-
-      if(reel.musicTitle){
-
-        audioText =
+      const audio =
+      reel.musicTitle
+      ? (
           "🎵 " +
-          reel.musicTitle;
-
-
-        if(reel.musicArtist){
-
-          audioText +=
-            " — " +
-            reel.musicArtist;
-
-        }
-
-      }
+          reel.musicTitle +
+          (
+            reel.musicArtist
+            ? " — " +
+              reel.musicArtist
+            : ""
+          )
+        )
+      : "";
 
 
       card.innerHTML = `
@@ -1694,15 +1720,15 @@ function renderResults(items){
 
           ${
             image
-              ? `
-                <img
-                  src="${escapeAttribute(image)}"
-                  alt="Instagram Reel"
-                  loading="lazy"
-                  onerror="this.style.display='none';"
-                >
-              `
-              : ""
+            ? `
+              <img
+                src="${escapeAttribute(image)}"
+                alt="Instagram Reel"
+                loading="lazy"
+                onerror="this.style.display='none';"
+              >
+            `
+            : ""
           }
 
           <div class="reel-badge">
@@ -1732,10 +1758,10 @@ function renderResults(items){
             💬 ${comments}
 
             ${
-              durationText
-                ? "&nbsp;&nbsp;⏱ " +
-                  escapeHtml(durationText)
-                : ""
+              duration
+              ? "&nbsp;&nbsp;⏱ " +
+                escapeHtml(duration)
+              : ""
             }
 
           </div>
@@ -1747,23 +1773,20 @@ function renderResults(items){
 
 
           ${
-            audioText
-              ? `
-                <div
-                  class="meta"
-                  style="color:#aaa0ff;"
-                >
-                  ${escapeHtml(audioText)}
-                </div>
-              `
-              : ""
+            audio
+            ? `
+              <div class="audio">
+                ${escapeHtml(audio)}
+              </div>
+            `
+            : ""
           }
 
 
           <div class="meta">
-
-            ${formatDate(reel.timestamp)}
-
+            ${formatDate(
+              reel.timestamp
+            )}
           </div>
 
 
@@ -1779,15 +1802,15 @@ function renderResults(items){
 
             ${
               reel.url
-                ? `
-                  <button
-                    class="btn-dark"
-                    onclick="openOriginal('${escapeAttribute(reel.url)}')"
-                  >
-                    OPEN
-                  </button>
-                `
-                : ""
+              ? `
+                <button
+                  class="btn-dark"
+                  onclick="openOriginal('${escapeAttribute(reel.url)}')"
+                >
+                  OPEN
+                </button>
+              `
+              : ""
             }
 
           </div>
@@ -1807,14 +1830,18 @@ function renderResults(items){
 }
 
 
-/* =========================================================
+/* =====================================================
    QUEUE
-========================================================= */
+===================================================== */
 
-function addToQueue(index){
+function addToQueue(
+index
+){
 
   const reel =
-    window.clipperResults?.[index];
+  window.clipperResults?.[
+    index
+  ];
 
 
   if(!reel){
@@ -1823,16 +1850,16 @@ function addToQueue(index){
 
 
   const exists =
-    queue.some(
-      function(item){
+  queue.some(
+    function(item){
 
-        return (
-          item.id === reel.id ||
-          item.url === reel.url
-        );
+      return (
+        item.id === reel.id ||
+        item.url === reel.url
+      );
 
-      }
-    );
+    }
+  );
 
 
   if(exists){
@@ -1863,7 +1890,9 @@ function addToQueue(index){
 }
 
 
-function removeFromQueue(index){
+function removeFromQueue(
+index
+){
 
   queue.splice(
     index,
@@ -1882,7 +1911,9 @@ function saveQueue(){
 
   localStorage.setItem(
     QUEUE_KEY,
-    JSON.stringify(queue)
+    JSON.stringify(
+      queue
+    )
   );
 
 }
@@ -1891,19 +1922,21 @@ function saveQueue(){
 function renderQueue(){
 
   const container =
-    document.getElementById(
-      "queue"
-    );
+  document.getElementById(
+    "queue"
+  );
 
 
   container.innerHTML =
-    "";
+  "";
 
 
   if(!queue.length){
 
     container.innerHTML =
-      '<div class="empty">Queue is empty.</div>';
+    '<div class="empty">' +
+    "Queue is empty." +
+    "</div>";
 
     return;
 
@@ -1914,33 +1947,33 @@ function renderQueue(){
     function(item,index){
 
       const div =
-        document.createElement(
-          "div"
-        );
+      document.createElement(
+        "div"
+      );
 
 
       div.className =
-        "queue-item";
+      "queue-item";
 
 
       const hook =
-        item.remixHook
-          ? `
-            <div class="remix-output">
+      item.remixHook
+      ? `
+        <div class="remix-output">
 
-              <strong>
-                Suggested hook:
-              </strong>
+          <strong>
+          Suggested hook:
+          </strong>
 
-              <br>
+          <br>
 
-              ${escapeHtml(
-                item.remixHook
-              )}
+          ${escapeHtml(
+            item.remixHook
+          )}
 
-            </div>
-          `
-          : "";
+        </div>
+      `
+      : "";
 
 
       div.innerHTML = `
@@ -1992,9 +2025,9 @@ function renderQueue(){
 }
 
 
-/* =========================================================
+/* =====================================================
    REMIX
-========================================================= */
+===================================================== */
 
 function generateHook(){
 
@@ -2030,25 +2063,23 @@ function generateHook(){
 
 
 function rewriteCaption(
-  caption
+caption
 ){
 
   if(!caption){
 
-    return (
-      "You need to see this 👀"
-    );
+    return "You need to see this 👀";
 
   }
 
 
   const clean =
-    caption
-      .replace(
-        /\s+/g,
-        " "
-      )
-      .trim();
+  caption
+  .replace(
+    /\s+/g,
+    " "
+  )
+  .trim();
 
 
   if(
@@ -2088,25 +2119,25 @@ function remixAll(){
 
 
   queue =
-    queue.map(
-      function(item){
+  queue.map(
+    function(item){
 
-        return {
+      return {
 
-          ...item,
+        ...item,
 
-          remixHook:
-            generateHook(),
+        remixHook:
+        generateHook(),
 
-          remixCaption:
-            rewriteCaption(
-              item.caption
-            )
+        remixCaption:
+        rewriteCaption(
+          item.caption
+        )
 
-        };
+      };
 
-      }
-    );
+    }
+  );
 
 
   saveQueue();
@@ -2123,9 +2154,9 @@ function remixAll(){
 }
 
 
-/* =========================================================
+/* =====================================================
    EXPORT
-========================================================= */
+===================================================== */
 
 function exportQueue(){
 
@@ -2141,96 +2172,96 @@ function exportQueue(){
 
 
   let output =
-    "CLIPPER REMIX QUEUE\n";
+  "CLIPPER REMIX QUEUE\n";
 
   output +=
-    "====================\n\n";
+  "====================\n\n";
 
 
   queue.forEach(
     function(item,index){
 
       output +=
-        (index + 1) +
-        ". @" +
-        (
-          item.owner ||
-          ""
-        ) +
-        "\n";
+      (index + 1) +
+      ". @" +
+      (
+        item.owner ||
+        ""
+      ) +
+      "\n";
 
 
       output +=
-        "Original URL: " +
-        (
-          item.url ||
-          ""
-        ) +
-        "\n";
+      "Original URL: " +
+      (
+        item.url ||
+        ""
+      ) +
+      "\n";
 
 
       output +=
-        "Original caption:\n" +
-        (
-          item.caption ||
-          ""
-        ) +
-        "\n\n";
+      "Original caption:\n" +
+      (
+        item.caption ||
+        ""
+      ) +
+      "\n\n";
 
 
       output +=
-        "Suggested hook:\n" +
-        (
-          item.remixHook ||
-          ""
-        ) +
-        "\n\n";
+      "Suggested hook:\n" +
+      (
+        item.remixHook ||
+        ""
+      ) +
+      "\n\n";
 
 
       output +=
-        "Suggested caption:\n" +
-        (
-          item.remixCaption ||
-          ""
-        ) +
-        "\n";
+      "Suggested caption:\n" +
+      (
+        item.remixCaption ||
+        ""
+      ) +
+      "\n";
 
 
       output +=
-        "--------------------\n\n";
+      "--------------------\n\n";
 
     }
   );
 
 
   const blob =
-    new Blob(
-      [output],
-      {
-        type:
-          "text/plain;charset=utf-8"
-      }
-    );
+  new Blob(
+    [output],
+    {
+      type:
+      "text/plain;charset=utf-8"
+    }
+  );
 
 
   const url =
-    URL.createObjectURL(
-      blob
-    );
+  URL.createObjectURL(
+    blob
+  );
 
 
   const a =
-    document.createElement(
-      "a"
-    );
+  document.createElement(
+    "a"
+  );
 
 
   a.href =
-    url;
+  url;
 
 
   a.download =
-    "clipper-remix-queue.txt";
+  "clipper-remix-queue.txt";
 
 
   document.body.appendChild(
@@ -2251,11 +2282,13 @@ function exportQueue(){
 }
 
 
-/* =========================================================
+/* =====================================================
    OPEN ORIGINAL
-========================================================= */
+===================================================== */
 
-function openOriginal(url){
+function openOriginal(
+url
+){
 
   if(!url){
     return;
@@ -2271,14 +2304,16 @@ function openOriginal(url){
 }
 
 
-/* =========================================================
+/* =====================================================
    HELPERS
-========================================================= */
+===================================================== */
 
-function formatNumber(value){
+function formatNumber(
+value
+){
 
   const n =
-    Number(value);
+  Number(value);
 
 
   if(!Number.isFinite(n)){
@@ -2290,11 +2325,11 @@ function formatNumber(value){
 
     return (
       (n / 1000000)
-        .toFixed(1)
-        .replace(
-          ".0",
-          ""
-        ) +
+      .toFixed(1)
+      .replace(
+        ".0",
+        ""
+      ) +
       "M"
     );
 
@@ -2305,11 +2340,11 @@ function formatNumber(value){
 
     return (
       (n / 1000)
-        .toFixed(1)
-        .replace(
-          ".0",
-          ""
-        ) +
+      .toFixed(1)
+      .replace(
+        ".0",
+        ""
+      ) +
       "K"
     );
 
@@ -2322,28 +2357,34 @@ function formatNumber(value){
 
 
 function formatDuration(
-  seconds
+seconds
 ){
 
-  seconds =
-    Math.round(
-      Number(seconds)
-    );
+  const value =
+  Math.round(
+    Number(seconds)
+  );
 
 
-  if(!Number.isFinite(seconds)){
+  if(
+    !Number.isFinite(
+      value
+    )
+  ){
+
     return "";
+
   }
 
 
   const minutes =
-    Math.floor(
-      seconds / 60
-    );
+  Math.floor(
+    value / 60
+  );
 
 
   const remaining =
-    seconds % 60;
+  value % 60;
 
 
   return (
@@ -2361,7 +2402,7 @@ function formatDuration(
 
 
 function formatDate(
-  value
+value
 ){
 
   if(!value){
@@ -2372,10 +2413,6 @@ function formatDate(
   let date;
 
 
-  /*
-   * Some Instagram scrapers return
-   * Unix timestamps in seconds.
-   */
   if(
     typeof value === "number" ||
     /^\d+$/.test(
@@ -2384,20 +2421,22 @@ function formatDate(
   ){
 
     const numeric =
-      Number(value);
+    Number(value);
 
 
     date =
-      new Date(
-        numeric < 100000000000
-          ? numeric * 1000
-          : numeric
-      );
+    new Date(
+      numeric < 100000000000
+      ? numeric * 1000
+      : numeric
+    );
 
   }else{
 
     date =
-      new Date(value);
+    new Date(
+      value
+    );
 
   }
 
@@ -2426,7 +2465,7 @@ function formatDate(
 
 
 function escapeHtml(
-  value
+value
 ){
 
   return String(
@@ -2457,7 +2496,7 @@ function escapeHtml(
 
 
 function escapeAttribute(
-  value
+value
 ){
 
   return String(
@@ -2483,25 +2522,25 @@ function escapeAttribute(
 }
 
 
-/* =========================================================
+/* =====================================================
    ENTER KEY
-========================================================= */
+===================================================== */
 
 document.addEventListener(
-  "keydown",
-  function(event){
+"keydown",
+function(event){
 
-    if(
-      event.key === "Enter" &&
-      document.activeElement?.id ===
-        "accountInput"
-    ){
+  if(
+    event.key === "Enter" &&
+    document.activeElement?.id ===
+    "accountInput"
+  ){
 
-      addAccount();
-
-    }
+    addAccount();
 
   }
+
+}
 );
 
 </script>
