@@ -8,95 +8,1529 @@
 
 <style>
 *{box-sizing:border-box}
+
 body{
-  margin:0;
-  background:#0b0b0f;
-  color:#fff;
-  font-family:Inter,Arial,sans-serif;
+    margin:0;
+    background:#09090d;
+    color:#fff;
+    font-family:Arial,Helvetica,sans-serif;
 }
+
 .container{
-  max-width:1250px;
-  margin:auto;
-  padding:25px;
+    max-width:1250px;
+    margin:auto;
+    padding:25px;
 }
+
 h1{
-  margin:0;
-  font-size:38px;
-  letter-spacing:-1px;
+    margin:0;
+    font-size:40px;
+    letter-spacing:-1px;
 }
+
 .subtitle{
-  color:#999;
-  margin-top:5px;
-  margin-bottom:25px;
+    color:#8e8e99;
+    margin:5px 0 28px;
 }
+
 .card{
-  background:#15151b;
-  border:1px solid #292932;
-  border-radius:16px;
-  padding:20px;
-  margin-bottom:20px;
+    background:#15151b;
+    border:1px solid #292932;
+    border-radius:18px;
+    padding:22px;
+    margin-bottom:20px;
 }
+
 h2{
-  margin-top:0;
+    margin:0 0 15px;
+    font-size:21px;
 }
+
 input{
-  width:100%;
-  padding:13px;
-  border-radius:10px;
-  border:1px solid #333;
-  background:#0e0e13;
-  color:#fff;
-  margin:7px 0;
+    width:100%;
+    padding:14px;
+    border-radius:11px;
+    border:1px solid #363640;
+    background:#0e0e13;
+    color:#fff;
+    outline:none;
+    margin:5px 0 10px;
 }
+
+input:focus{
+    border-color:#777;
+}
+
 button{
-  border:0;
-  border-radius:10px;
-  padding:12px 17px;
-  font-weight:700;
-  cursor:pointer;
-  margin:5px 5px 5px 0;
+    border:0;
+    border-radius:11px;
+    padding:12px 17px;
+    font-weight:bold;
+    cursor:pointer;
+    margin:4px 5px 4px 0;
 }
+
+button:hover{
+    opacity:.88;
+}
+
 .primary{
-  background:#fff;
-  color:#000;
+    background:#fff;
+    color:#000;
 }
+
 .secondary{
-  background:#27272f;
-  color:#fff;
+    background:#292930;
+    color:#fff;
 }
-.danger{
-  background:#4a1e1e;
-  color:#fff;
-}
+
 .success{
-  background:#173d28;
-  color:#fff;
+    background:#19432b;
+    color:#b5ffd0;
 }
+
+.danger{
+    background:#4b2020;
+    color:#ffd0d0;
+}
+
 button:disabled{
-  opacity:.4;
-  cursor:not-allowed;
+    opacity:.4;
+    cursor:not-allowed;
 }
+
 .status{
-  padding:10px;
-  border-radius:10px;
-  margin-top:10px;
-  display:none;
+    padding:12px;
+    border-radius:10px;
+    margin-top:10px;
+    display:none;
 }
-.ok{
-  display:block;
-  background:#14351f;
-  color:#8ff0ae;
+
+.status.ok{
+    display:block;
+    background:#14351f;
+    color:#8ff0ae;
 }
-.error{
-  display:block;
-  background:#401b1b;
-  color:#ff9b9b;
+
+.status.error{
+    display:block;
+    background:#401b1b;
+    color:#ff9b9b;
 }
+
+.small{
+    font-size:13px;
+    color:#85858f;
+    line-height:1.5;
+}
+
 .accounts{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-top:12px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
 }
+
 .account{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:#25252d;
+    border-radius:30px;
+    padding:7px 10px 7px 14px;
+}
+
+.account button{
+    margin:0;
+    padding:3px 8px;
+    border-radius:20px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+    gap:17px;
+}
+
+.reel{
+    background:#101015;
+    border:1px solid #292932;
+    border-radius:15px;
+    overflow:hidden;
+}
+
+.reel img{
+    width:100%;
+    aspect-ratio:9/14;
+    object-fit:cover;
+    background:#202027;
+    display:block;
+}
+
+.reel-body{
+    padding:15px;
+}
+
+.reel-title{
+    font-weight:bold;
+    margin-bottom:7px;
+}
+
+.meta{
+    color:#888894;
+    font-size:12px;
+    margin:7px 0;
+}
+
+.caption{
+    color:#d5d5db;
+    font-size:13px;
+    line-height:1.45;
+    max-height:100px;
+    overflow:auto;
+    margin-bottom:10px;
+}
+
+.link{
+    color:#fff;
+    font-size:13px;
+    text-decoration:none;
+}
+
+.queue-item{
+    background:#101015;
+    border:1px solid #292932;
+    border-radius:13px;
+    padding:16px;
+    margin:10px 0;
+}
+
+.hook{
+    background:#1b1b23;
+    border-radius:10px;
+    padding:11px;
+    margin-top:10px;
+    line-height:1.45;
+}
+
+.empty{
+    color:#777782;
+    padding:10px 0;
+}
+
+.loader{
+    display:none;
+    margin-top:12px;
+    color:#aaa;
+}
+
+.badge{
+    display:inline-block;
+    padding:4px 8px;
+    border-radius:20px;
+    background:#272730;
+    color:#aaa;
+    font-size:11px;
+}
+
+@media(max-width:600px){
+    .container{
+        padding:15px;
+    }
+
+    h1{
+        font-size:32px;
+    }
+
+    .card{
+        padding:17px;
+    }
+
+    .grid{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>CLIPPER</h1>
+
+    <div class="subtitle">
+        Instagram inspiration → Random 10 → Remix → Export
+    </div>
+
+
+    <!-- APIFY -->
+
+    <div class="card">
+
+        <h2>1. Apify connection</h2>
+
+        <div class="small">
+            Enter your Apify API token. It will be stored locally in this browser.
+        </div>
+
+        <input
+            id="apifyToken"
+            type="password"
+            placeholder="Paste Apify API token here"
+        >
+
+        <button
+            class="primary"
+            id="testButton"
+            onclick="saveAndTestApify()"
+        >
+            SAVE & TEST CONNECTION
+        </button>
+
+        <button
+            class="secondary"
+            onclick="clearToken()"
+        >
+            CLEAR
+        </button>
+
+        <div
+            id="apifyStatus"
+            class="status"
+        ></div>
+
+    </div>
+
+
+    <!-- ACCOUNTS -->
+
+    <div class="card">
+
+        <h2>2. Inspiration accounts</h2>
+
+        <div class="small">
+            Add one or more public Instagram accounts.
+        </div>
+
+        <input
+            id="accountInput"
+            placeholder="@username"
+        >
+
+        <button
+            class="primary"
+            onclick="addAccount()"
+        >
+            + ADD ACCOUNT
+        </button>
+
+        <div
+            id="accounts"
+            class="accounts"
+        ></div>
+
+    </div>
+
+
+    <!-- RANDOM -->
+
+    <div class="card">
+
+        <h2>3. Daily inspiration</h2>
+
+        <button
+            id="randomButton"
+            class="primary"
+            onclick="loadRandom10()"
+        >
+            🎲 GIVE ME 10
+        </button>
+
+        <button
+            class="secondary"
+            onclick="clearResults()"
+        >
+            CLEAR
+        </button>
+
+        <div
+            id="loadStatus"
+            class="loader"
+        ></div>
+
+    </div>
+
+
+    <!-- RESULTS -->
+
+    <div class="card">
+
+        <h2>4. Inspiration feed</h2>
+
+        <div
+            id="results"
+            class="grid"
+        >
+            <div class="empty">
+                Your inspiration clips will appear here.
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- QUEUE -->
+
+    <div class="card">
+
+        <h2>5. Remix queue</h2>
+
+        <div class="small">
+            Select clips above and add them to the remix queue.
+        </div>
+
+        <br>
+
+        <button
+            id="remixButton"
+            class="primary"
+            onclick="remixAll()"
+        >
+            ✨ REMIX ALL
+        </button>
+
+        <button
+            class="success"
+            onclick="exportQueue()"
+        >
+            📦 EXPORT QUEUE
+        </button>
+
+        <div id="queue"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================
+   CLIPPER
+   ========================================= */
+
+let accounts = JSON.parse(
+    localStorage.getItem("clipper_accounts") || "[]"
+);
+
+let reels = [];
+
+let queue = [];
+
+
+/* =========================================
+   START
+   ========================================= */
+
+document.addEventListener("DOMContentLoaded", function(){
+
+    const token =
+        localStorage.getItem("clipper_apify_token") || "";
+
+    document.getElementById("apifyToken").value = token;
+
+    renderAccounts();
+
+});
+
+
+/* =========================================
+   APIFY CONNECTION
+   ========================================= */
+
+async function saveAndTestApify(){
+
+    const token =
+        document.getElementById("apifyToken").value.trim();
+
+    const status =
+        document.getElementById("apifyStatus");
+
+    const button =
+        document.getElementById("testButton");
+
+    if(!token){
+
+        showStatus(
+            status,
+            "Please paste your Apify API token.",
+            false
+        );
+
+        return;
+    }
+
+    button.disabled = true;
+
+    status.className = "status";
+
+    status.style.display = "block";
+
+    status.textContent =
+        "Testing Apify connection...";
+
+    try{
+
+        const response = await fetch(
+            "https://api.apify.com/v2/users/me?token=" +
+            encodeURIComponent(token)
+        );
+
+        if(!response.ok){
+
+            throw new Error(
+                "Apify rejected the token."
+            );
+
+        }
+
+        const data =
+            await response.json();
+
+        localStorage.setItem(
+            "clipper_apify_token",
+            token
+        );
+
+        showStatus(
+            status,
+            "✓ Apify connection is active.",
+            true
+        );
+
+    }catch(error){
+
+        showStatus(
+            status,
+            "✕ Connection failed: " +
+            error.message,
+            false
+        );
+
+    }finally{
+
+        button.disabled = false;
+
+    }
+
+}
+
+
+function clearToken(){
+
+    localStorage.removeItem(
+        "clipper_apify_token"
+    );
+
+    document.getElementById(
+        "apifyToken"
+    ).value = "";
+
+    const status =
+        document.getElementById("apifyStatus");
+
+    status.className = "status";
+
+    status.style.display = "none";
+
+}
+
+
+function showStatus(element,text,success){
+
+    element.textContent = text;
+
+    element.className =
+        success
+        ? "status ok"
+        : "status error";
+
+}
+
+
+/* =========================================
+   ACCOUNTS
+   ========================================= */
+
+function cleanUsername(value){
+
+    value = value.trim();
+
+    value = value
+        .replace(/^https?:\/\/(www\.)?instagram\.com\//i,"")
+        .split("?")[0]
+        .split("#")[0]
+        .replace(/^@/,"")
+        .replace(/\/$/,"");
+
+    return value.trim();
+
+}
+
+
+function addAccount(){
+
+    const input =
+        document.getElementById("accountInput");
+
+    const username =
+        cleanUsername(input.value);
+
+    if(!username){
+
+        alert(
+            "Enter an Instagram username."
+        );
+
+        return;
+    }
+
+    if(accounts.includes(username)){
+
+        alert(
+            "This account is already added."
+        );
+
+        return;
+    }
+
+    accounts.push(username);
+
+    localStorage.setItem(
+        "clipper_accounts",
+        JSON.stringify(accounts)
+    );
+
+    input.value = "";
+
+    renderAccounts();
+
+}
+
+
+function removeAccount(username){
+
+    accounts =
+        accounts.filter(
+            account => account !== username
+        );
+
+    localStorage.setItem(
+        "clipper_accounts",
+        JSON.stringify(accounts)
+    );
+
+    renderAccounts();
+
+}
+
+
+function renderAccounts(){
+
+    const container =
+        document.getElementById("accounts");
+
+    container.innerHTML = "";
+
+    if(!accounts.length){
+
+        container.innerHTML =
+            '<div class="empty">No accounts added yet.</div>';
+
+        return;
+    }
+
+    accounts.forEach(function(username){
+
+        const div =
+            document.createElement("div");
+
+        div.className = "account";
+
+        const name =
+            document.createElement("span");
+
+        name.textContent =
+            "@" + username;
+
+        const remove =
+            document.createElement("button");
+
+        remove.className = "danger";
+
+        remove.textContent = "×";
+
+        remove.onclick = function(){
+
+            removeAccount(username);
+
+        };
+
+        div.appendChild(name);
+
+        div.appendChild(remove);
+
+        container.appendChild(div);
+
+    });
+
+}
+
+
+/* =========================================
+   LOAD RANDOM 10
+   ========================================= */
+
+async function loadRandom10(){
+
+    const token =
+        localStorage.getItem("clipper_apify_token");
+
+    const button =
+        document.getElementById("randomButton");
+
+    const status =
+        document.getElementById("loadStatus");
+
+    if(!token){
+
+        alert(
+            "First save and test your Apify connection."
+        );
+
+        return;
+    }
+
+    if(!accounts.length){
+
+        alert(
+            "First add at least one Instagram account."
+        );
+
+        return;
+    }
+
+    button.disabled = true;
+
+    status.style.display = "block";
+
+    status.textContent =
+        "Loading inspiration...";
+
+    clearResults();
+
+    try{
+
+        let allItems = [];
+
+        for(
+            let i = 0;
+            i < accounts.length;
+            i++
+        ){
+
+            const username =
+                accounts[i];
+
+            status.textContent =
+                "Loading @" +
+                username +
+                "...";
+
+            const input = {
+
+                directUrls: [
+                    "https://www.instagram.com/" +
+                    username +
+                    "/"
+                ],
+
+                resultsType: "posts",
+
+                resultsLimit: 30
+
+            };
+
+            const endpoint =
+                "https://api.apify.com/v2/acts/" +
+                "apify~instagram-scraper/" +
+                "run-sync-get-dataset-items?token=" +
+                encodeURIComponent(token);
+
+            const response =
+                await fetch(
+                    endpoint,
+                    {
+                        method:"POST",
+                        headers:{
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body:
+                            JSON.stringify(input)
+                    }
+                );
+
+            if(!response.ok){
+
+                const message =
+                    await response.text();
+
+                throw new Error(
+                    "Apify error " +
+                    response.status +
+                    ": " +
+                    message
+                );
+
+            }
+
+            const items =
+                await response.json();
+
+            if(Array.isArray(items)){
+
+                allItems.push(
+                    ...items
+                );
+
+            }
+
+        }
+
+
+        reels =
+            allItems
+            .map(normalizeReel)
+            .filter(function(item){
+
+                return (
+                    item.image ||
+                    item.video
+                );
+
+            });
+
+        reels =
+            shuffle(reels).slice(0,10);
+
+        renderResults();
+
+        status.textContent =
+            "✓ Found " +
+            reels.length +
+            " inspiration items.";
+
+    }catch(error){
+
+        console.error(error);
+
+        status.textContent =
+            "✕ " + error.message;
+
+    }finally{
+
+        button.disabled = false;
+
+    }
+
+}
+
+
+/* =========================================
+   NORMALIZE DATA
+   ========================================= */
+
+function normalizeReel(item){
+
+    return {
+
+        id:
+            item.id ||
+            item.pk ||
+            item.shortCode ||
+            Math.random()
+                .toString(36)
+                .substring(2),
+
+        url:
+            item.url ||
+            item.webUrl ||
+            item.link ||
+            "",
+
+        image:
+            item.displayUrl ||
+            item.thumbnailUrl ||
+            item.imageUrl ||
+            item.thumbnail ||
+            "",
+
+        video:
+            item.videoUrl ||
+            item.video ||
+            "",
+
+        caption:
+            item.caption ||
+            item.text ||
+            "",
+
+        likes:
+            item.likesCount ||
+            item.likes ||
+            0,
+
+        comments:
+            item.commentsCount ||
+            item.comments ||
+            0,
+
+        views:
+            item.videoViewCount ||
+            item.videoViews ||
+            item.views ||
+            0,
+
+        timestamp:
+            item.timestamp ||
+            item.takenAt ||
+            "",
+
+        owner:
+            item.ownerUsername ||
+            item.username ||
+            ""
+
+    };
+
+}
+
+
+/* =========================================
+   DISPLAY RESULTS
+   ========================================= */
+
+function renderResults(){
+
+    const container =
+        document.getElementById("results");
+
+    container.innerHTML = "";
+
+    if(!reels.length){
+
+        container.innerHTML =
+            '<div class="empty">No suitable posts found.</div>';
+
+        return;
+    }
+
+    reels.forEach(function(reel,index){
+
+        const card =
+            document.createElement("div");
+
+        card.className = "reel";
+
+
+        const image =
+            reel.image ||
+            "https://placehold.co/600x900?text=Preview";
+
+
+        const img =
+            document.createElement("img");
+
+        img.src = image;
+
+        img.alt = "Instagram preview";
+
+        img.onerror = function(){
+
+            this.src =
+                "https://placehold.co/600x900?text=Preview+Unavailable";
+
+        };
+
+
+        const body =
+            document.createElement("div");
+
+        body.className = "reel-body";
+
+
+        const title =
+            document.createElement("div");
+
+        title.className = "reel-title";
+
+        title.textContent =
+            "#" +
+            (index + 1) +
+            (
+                reel.owner
+                ? " · @" + reel.owner
+                : ""
+            );
+
+
+        const meta =
+            document.createElement("div");
+
+        meta.className = "meta";
+
+        meta.textContent =
+            "❤️ " +
+            formatNumber(reel.likes) +
+            "   💬 " +
+            formatNumber(reel.comments) +
+            (
+                reel.views
+                ? "   ▶ " +
+                  formatNumber(reel.views)
+                : ""
+            );
+
+
+        const caption =
+            document.createElement("div");
+
+        caption.className = "caption";
+
+        caption.textContent =
+            reel.caption ||
+            "No caption available.";
+
+
+        const add =
+            document.createElement("button");
+
+        add.className = "primary";
+
+        add.textContent =
+            "+ ADD TO QUEUE";
+
+        add.onclick = function(){
+
+            addToQueue(index);
+
+        };
+
+
+        body.appendChild(title);
+
+        body.appendChild(meta);
+
+        body.appendChild(caption);
+
+        body.appendChild(add);
+
+
+        if(reel.url){
+
+            const link =
+                document.createElement("a");
+
+            link.className = "link";
+
+            link.href = reel.url;
+
+            link.target = "_blank";
+
+            link.rel = "noopener";
+
+            link.textContent =
+                "Open original ↗";
+
+            body.appendChild(link);
+
+        }
+
+
+        card.appendChild(img);
+
+        card.appendChild(body);
+
+        container.appendChild(card);
+
+    });
+
+}
+
+
+/* =========================================
+   QUEUE
+   ========================================= */
+
+function addToQueue(index){
+
+    const reel =
+        reels[index];
+
+    if(!reel){
+
+        return;
+    }
+
+    if(
+        queue.some(
+            item => item.id === reel.id
+        )
+    ){
+
+        alert(
+            "This item is already in the queue."
+        );
+
+        return;
+    }
+
+    queue.push({
+
+        ...reel,
+
+        hook:"",
+
+        newCaption:"",
+
+        status:"Waiting"
+
+    });
+
+    renderQueue();
+
+}
+
+
+function removeFromQueue(index){
+
+    queue.splice(index,1);
+
+    renderQueue();
+
+}
+
+
+function renderQueue(){
+
+    const container =
+        document.getElementById("queue");
+
+    container.innerHTML = "";
+
+    if(!queue.length){
+
+        container.innerHTML =
+            '<div class="empty">Queue is empty.</div>';
+
+        return;
+    }
+
+    queue.forEach(function(item,index){
+
+        const div =
+            document.createElement("div");
+
+        div.className =
+            "queue-item";
+
+
+        const title =
+            document.createElement("strong");
+
+        title.textContent =
+            "#" +
+            (index + 1) +
+            (
+                item.owner
+                ? " · @" + item.owner
+                : ""
+            );
+
+
+        const status =
+            document.createElement("div");
+
+        status.className =
+            "meta";
+
+        status.textContent =
+            "Status: " +
+            item.status;
+
+
+        div.appendChild(title);
+
+        div.appendChild(status);
+
+
+        if(item.hook){
+
+            const hook =
+                document.createElement("div");
+
+            hook.className =
+                "hook";
+
+            hook.innerHTML =
+                "<strong>NEW HOOK</strong><br>";
+
+            hook.appendChild(
+                document.createTextNode(
+                    item.hook
+                )
+            );
+
+            div.appendChild(hook);
+
+        }
+
+
+        if(item.newCaption){
+
+            const caption =
+                document.createElement("div");
+
+            caption.className =
+                "hook";
+
+            caption.innerHTML =
+                "<strong>NEW CAPTION</strong><br>";
+
+            caption.appendChild(
+                document.createTextNode(
+                    item.newCaption
+                )
+            );
+
+            div.appendChild(caption);
+
+        }
+
+
+        const remove =
+            document.createElement("button");
+
+        remove.className =
+            "danger";
+
+        remove.textContent =
+            "REMOVE";
+
+        remove.onclick = function(){
+
+            removeFromQueue(index);
+
+        };
+
+
+        div.appendChild(remove);
+
+        container.appendChild(div);
+
+    });
+
+}
+
+
+/* =========================================
+   REMIX
+   ========================================= */
+
+async function remixAll(){
+
+    if(!queue.length){
+
+        alert(
+            "Add clips to the queue first."
+        );
+
+        return;
+    }
+
+    const button =
+        document.getElementById(
+            "remixButton"
+        );
+
+    button.disabled = true;
+
+    for(
+        let i = 0;
+        i < queue.length;
+        i++
+    ){
+
+        queue[i].status =
+            "Creating remix...";
+
+        renderQueue();
+
+        await wait(350);
+
+        queue[i].hook =
+            generateHook(queue[i]);
+
+        queue[i].newCaption =
+            generateCaption(queue[i]);
+
+        queue[i].status =
+            "Remix concept ready";
+
+        renderQueue();
+
+    }
+
+    button.disabled = false;
+
+}
+
+
+function generateHook(item){
+
+    const hooks = [
+
+        "POV: nobody expected this 😭",
+
+        "Wait for the ending...",
+
+        "This is actually insane 💀",
+
+        "The internet was NOT ready for this",
+
+        "You missed the best part",
+
+        "Why is nobody talking about this?",
+
+        "This moment changed everything",
+
+        "I was NOT expecting that",
+
+        "The way this escalated 😭",
+
+        "You need to see this"
+
+    ];
+
+    return hooks[
+        Math.floor(
+            Math.random() *
+            hooks.length
+        )
+    ];
+
+}
+
+
+function generateCaption(item){
+
+    let original =
+        item.caption || "";
+
+    original =
+        original
+        .replace(/\s+/g," ")
+        .trim();
+
+    if(original.length > 180){
+
+        original =
+            original.substring(0,180) +
+            "...";
+
+    }
+
+    return (
+        "You need to see this 👀\n\n" +
+        (
+            original ||
+            "This moment is too good not to share."
+        ) +
+        "\n\nWhat do you think?"
+    );
+
+}
+
+
+/* =========================================
+   EXPORT
+   ========================================= */
+
+function exportQueue(){
+
+    if(!queue.length){
+
+        alert(
+            "Queue is empty."
+        );
+
+        return;
+    }
+
+    let output =
+        "CLIPPER EXPORT\n\n";
+
+
+    queue.forEach(function(item,index){
+
+        output +=
+            "==============================\n";
+
+        output +=
+            "ITEM " +
+            (index + 1) +
+            "\n\n";
+
+        output +=
+            "ORIGINAL:\n" +
+            (item.url || "") +
+            "\n\n";
+
+        output +=
+            "NEW HOOK:\n" +
+            (item.hook || "") +
+            "\n\n";
+
+        output +=
+            "NEW CAPTION:\n" +
+            (item.newCaption || "") +
+            "\n\n";
+
+    });
+
+
+    const blob =
+        new Blob(
+            [output],
+            {
+                type:"text/plain;charset=utf-8"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement("a");
+
+
+    link.href = url;
+
+    link.download =
+        "clipper-export.txt";
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* =========================================
+   CLEAR
+   ========================================= */
+
+function clearResults(){
+
+    reels = [];
+
+    document.getElementById(
+        "results"
+    ).innerHTML =
+        '<div class="empty">Your inspiration clips will appear here.</div>';
+
+}
+
+
+/* =========================================
+   HELPERS
+   ========================================= */
+
+function shuffle(array){
+
+    return array
+        .map(function(value){
+
+            return {
+                value:value,
+                sort:Math.random()
+            };
+
+        })
+        .sort(function(a,b){
+
+            return a.sort - b.sort;
+
+        })
+        .map(function(item){
+
+            return item.value;
+
+        });
+
+}
+
+
+function formatNumber(number){
+
+    number =
+        Number(number) || 0;
+
+    if(number >= 1000000){
+
+        return (
+            number / 1000000
+        ).toFixed(1) + "M";
+
+    }
+
+    if(number >= 1000){
+
+        return (
+            number / 1000
+        ).toFixed(1) + "K";
+
+    }
+
+    return String(number);
+
+}
+
+
+function wait(ms){
+
+    return new Promise(
+        function(resolve){
+
+            setTimeout(resolve,ms);
+
+        }
+    );
+
+}
+
+</script>
+
+</body>
+</html>
 ```
