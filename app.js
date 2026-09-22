@@ -1,7 +1,9 @@
 const API = 'https://clipper-backend-z71i.onrender.com';
-const KEY = 'clipper-state-v3';
+const KEY = 'clipper-state-v4';
 
-const state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
+const state = JSON.parse(
+  localStorage.getItem(KEY) || 'null'
+) || {
   accounts: [],
   clips: [],
   batches: [],
@@ -13,28 +15,49 @@ const state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
   tab: 'home'
 };
 
+
+/* =========================
+   STORAGE
+========================= */
+
 function save() {
-  localStorage.setItem(KEY, JSON.stringify(state));
+  localStorage.setItem(
+    KEY,
+    JSON.stringify(state)
+  );
 }
+
+
+/* =========================
+   HELPERS
+========================= */
 
 function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, m => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  }[m]));
+  return String(s ?? '').replace(
+    /[&<>"']/g,
+    m => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[m])
+  );
 }
 
+
 async function api(path, options = {}) {
-  const response = await fetch(API + path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
+  const response = await fetch(
+    API + path,
+    {
+      ...options,
+      headers: {
+        'Content-Type':
+          'application/json',
+        ...(options.headers || {})
+      }
     }
-  });
+  );
 
   let data = {};
 
@@ -44,191 +67,392 @@ async function api(path, options = {}) {
 
   if (!response.ok) {
     throw new Error(
-      data.error || `Request failed (${response.status})`
+      data.error ||
+      `Request failed (${response.status})`
     );
   }
 
   return data;
 }
 
+
 function toast(message) {
-  const d = document.createElement('div');
+  const d =
+    document.createElement('div');
+
   d.className = 'toast';
   d.textContent = message;
+
   document.body.appendChild(d);
 
-  setTimeout(() => d.remove(), 2500);
+  setTimeout(
+    () => d.remove(),
+    3000
+  );
 }
 
+
+/* =========================
+   APP
+========================= */
+
 function app() {
-  document.querySelector('#app').innerHTML = `
-    <main class="shell">
+  document.querySelector('#app')
+    .innerHTML = `
+      <main class="shell">
 
-      <div class="top">
-        <div class="brand">Clipper</div>
+        <div class="top">
 
-        <div class="pill" id="counter">
-          Connecting…
+          <div class="brand">
+            Clipper
+          </div>
+
+          <div
+            class="pill"
+            id="counter"
+          >
+            Connecting…
+          </div>
+
         </div>
-      </div>
 
-      <div id="view"></div>
+        <div id="view"></div>
 
-    </main>
+      </main>
 
-    <nav class="nav">
-      <div class="navin">
+      <nav class="nav">
 
-        <button data-tab="home">
-          ⚡<br>Remix
-        </button>
+        <div class="navin">
 
-        <button data-tab="library">
-          ▣<br>Library
-        </button>
+          <button data-tab="home">
+            ⚡<br>Remix
+          </button>
 
-        <button data-tab="settings">
-          ⚙<br>Settings
-        </button>
+          <button data-tab="library">
+            ▣<br>Library
+          </button>
 
-      </div>
-    </nav>
-  `;
+          <button data-tab="settings">
+            ⚙<br>Settings
+          </button>
 
-  document.querySelectorAll('[data-tab]').forEach(button => {
-    button.onclick = () => {
-      state.tab = button.dataset.tab;
-      save();
-      render();
-      loadData();
-    };
-  });
+        </div>
+
+      </nav>
+    `;
+
+  document
+    .querySelectorAll('[data-tab]')
+    .forEach(button => {
+
+      button.onclick = () => {
+
+        state.tab =
+          button.dataset.tab;
+
+        save();
+        render();
+        loadData();
+
+      };
+
+    });
 
   render();
   loadData();
 }
 
+
+/* =========================
+   LOAD DATA
+========================= */
+
 async function loadData() {
+
   try {
-    const [accounts, reels, batches] = await Promise.all([
+
+    const [
+      accounts,
+      reels,
+      batches
+    ] = await Promise.all([
       api('/api/accounts'),
       api('/api/reels'),
       api('/api/batches')
     ]);
 
-    state.accounts = accounts;
+    state.accounts =
+      accounts;
 
-    state.clips = reels.map(reel => ({
-      id: reel.id,
-      name: reel.caption
-        ? reel.caption.slice(0, 70)
-        : 'Instagram Reel',
-      source: '@' + reel.username,
-      sourceId: reel.sourceId,
-      videoUrl: reel.videoUrl,
-      permalink: reel.permalink,
-      preview: reel.previewUrl || '',
-      caption: reel.caption || '',
-      used: reel.used,
-      reserved: reel.reserved,
-      ready: false,
-      status: reel.used
-        ? 'used'
-        : reel.reserved
-          ? 'reserved'
-          : 'unused'
-    }));
+    state.clips =
+      reels.map(reel => {
+
+        const existing =
+          state.clips.find(
+            c => c.id === reel.id
+          );
+
+        return {
+
+          id: reel.id,
+
+          name:
+            reel.caption
+              ? reel.caption.slice(
+                  0,
+                  70
+                )
+              : 'Instagram Reel',
+
+          source:
+            '@' + reel.username,
+
+          sourceId:
+            reel.sourceId,
+
+          videoUrl:
+            reel.videoUrl,
+
+          permalink:
+            reel.permalink,
+
+          preview:
+            reel.previewUrl || '',
+
+          caption:
+            reel.caption || '',
+
+          used:
+            reel.used,
+
+          reserved:
+            reel.reserved,
+
+          ready:
+            existing?.ready || false,
+
+          status:
+            existing?.status ||
+            (
+              reel.used
+                ? 'used'
+                : reel.reserved
+                  ? 'reserved'
+                  : 'unused'
+            ),
+
+          hook:
+            existing?.hook || '',
+
+          hookOptions:
+            existing?.hookOptions || [],
+
+          summary:
+            existing?.summary || '',
+
+          outputUrl:
+            existing?.outputUrl || null,
+
+          error:
+            existing?.error || null,
+
+          batch:
+            existing?.batch || null,
+
+          jobId:
+            existing?.jobId || null
+
+        };
+
+      });
+
+
+    /* =========================
+       RESTORE JOB DATA
+    ========================= */
 
     batches.forEach(item => {
-      const batch = item.batch;
-      const jobs = item.jobs || [];
-      const batchReels = item.reels || [];
+
+      const batch =
+        item.batch;
+
+      const jobs =
+        item.jobs || [];
+
+      const batchReels =
+        item.reels || [];
+
 
       jobs.forEach(job => {
-        const reel = batchReels.find(
-          r => r.id === job.reelId
-        );
 
-        const clip = state.clips.find(
-          c => c.id === job.reelId
-        );
+        const reel =
+          batchReels.find(
+            r =>
+              r.id === job.reelId
+          );
+
+        const clip =
+          state.clips.find(
+            c =>
+              c.id === job.reelId
+          );
 
         if (!clip) return;
 
-        clip.batch = batch.id;
-        clip.jobId = job.id;
-        clip.hook = job.hook || '';
-        clip.caption =
-          job.caption || reel?.caption || clip.caption;
 
-        clip.status = job.status;
-        clip.ready = job.status === 'ready';
-        clip.outputUrl = job.outputUrl || null;
-        clip.error = job.error || null;
+        clip.batch =
+          batch.id;
+
+        clip.jobId =
+          job.id;
+
+        clip.hook =
+          job.hook ||
+          clip.hook ||
+          '';
+
+        clip.caption =
+          job.caption ||
+          reel?.caption ||
+          clip.caption ||
+          '';
+
+        clip.status =
+          job.status;
+
+        clip.ready =
+          job.status === 'ready';
+
+        clip.outputUrl =
+          job.outputUrl ||
+          clip.outputUrl ||
+          null;
+
+        clip.error =
+          job.error ||
+          null;
+
       });
+
     });
+
 
     save();
 
-    const counter = document.querySelector('#counter');
+
+    const counter =
+      document.querySelector(
+        '#counter'
+      );
 
     if (counter) {
+
       counter.textContent =
         `${state.clips.length} clips · ${state.accounts.length} sources`;
+
     }
+
 
     render();
 
+
   } catch (error) {
+
     console.error(error);
 
-    const counter = document.querySelector('#counter');
+    const counter =
+      document.querySelector(
+        '#counter'
+      );
 
     if (counter) {
-      counter.textContent = 'Backend offline';
+      counter.textContent =
+        'Backend offline';
     }
 
-    toast(`Backend: ${error.message}`);
+    toast(
+      `Backend: ${error.message}`
+    );
+
   }
+
 }
 
+
+/* =========================
+   MAIN RENDER
+========================= */
+
 function render() {
+
   document
-    .querySelectorAll('.nav button')
+    .querySelectorAll(
+      '.nav button'
+    )
     .forEach(button => {
+
       button.classList.toggle(
         'active',
-        button.dataset.tab === state.tab
+        button.dataset.tab ===
+          state.tab
       );
+
     });
 
-  const view = document.querySelector('#view');
+
+  const view =
+    document.querySelector(
+      '#view'
+    );
 
   if (!view) return;
 
-  if (state.tab === 'home') {
+
+  if (
+    state.tab === 'home'
+  ) {
     home(view);
   }
 
-  if (state.tab === 'library') {
+
+  if (
+    state.tab === 'library'
+  ) {
     library(view);
   }
 
-  if (state.tab === 'settings') {
+
+  if (
+    state.tab === 'settings'
+  ) {
     settings(view);
   }
+
 }
 
-function home(v) {
-  const unused = state.clips.filter(
-    c => !c.used && !c.reserved
-  ).length;
 
-  const ready = state.clips.filter(
-    c => c.ready
-  ).length;
+/* =========================
+   HOME
+========================= */
+
+function home(v) {
+
+  const unused =
+    state.clips.filter(
+      c =>
+        !c.used &&
+        !c.reserved
+    ).length;
+
+
+  const ready =
+    state.clips.filter(
+      c => c.ready
+    ).length;
+
 
   v.innerHTML = `
+
     <section class="hero">
 
       <div class="eyebrow">
@@ -242,8 +466,8 @@ function home(v) {
 
       <p>
         Pull inspiration Reels through the secure
-        backend, create a remix batch and render
-        finished videos.
+        backend, create a remix batch and generate
+        content-aware hooks.
       </p>
 
       <button
@@ -252,6 +476,7 @@ function home(v) {
       >
         RANDOM 10
       </button>
+
 
       <div
         class="row"
@@ -266,6 +491,7 @@ function home(v) {
           ＋ Inspiration account
         </button>
 
+
         <button
           class="secondary"
           style="flex:1"
@@ -278,9 +504,11 @@ function home(v) {
 
     </section>
 
+
     <div class="grid">
 
       <div class="card">
+
         <div class="muted">
           Unused
         </div>
@@ -288,9 +516,12 @@ function home(v) {
         <div class="stat">
           ${unused}
         </div>
+
       </div>
 
+
       <div class="card">
+
         <div class="muted">
           Ready
         </div>
@@ -298,9 +529,11 @@ function home(v) {
         <div class="stat">
           ${ready}
         </div>
+
       </div>
 
     </div>
+
 
     <section class="section">
 
@@ -310,45 +543,67 @@ function home(v) {
 
       ${
         state.accounts.length
-          ? state.accounts.map(account => `
-              <div class="account">
 
-                <div class="avatar">
-                  ${esc(
-                    account.username
-                      .slice(0, 1)
-                      .toUpperCase()
-                  )}
-                </div>
+          ? state.accounts
+              .map(account => `
 
-                <div>
+                <div class="account">
 
-                  <div class="name">
-                    @${esc(account.username)}
+                  <div class="avatar">
+
+                    ${esc(
+                      account.username
+                        .slice(0, 1)
+                        .toUpperCase()
+                    )}
+
                   </div>
 
-                  <div class="handle">
-                    ${esc(account.category || '')}
+
+                  <div>
+
+                    <div class="name">
+                      @${esc(
+                        account.username
+                      )}
+                    </div>
+
+                    <div class="handle">
+                      ${esc(
+                        account.category || ''
+                      )}
+                    </div>
+
                   </div>
+
+
+                  <div class="spacer"></div>
+
+
+                  <span class="tag">
+                    ${
+                      account.active
+                        ? 'ON'
+                        : 'OFF'
+                    }
+                  </span>
 
                 </div>
 
-                <div class="spacer"></div>
+              `)
+              .join('')
 
-                <span class="tag">
-                  ${account.active ? 'ON' : 'OFF'}
-                </span>
-
-              </div>
-            `).join('')
           : `
-              <div class="empty">
-                Add an Instagram inspiration account to begin.
-              </div>
-            `
+
+            <div class="empty">
+              Add an Instagram inspiration account to begin.
+            </div>
+
+          `
       }
 
     </section>
+
 
     <section class="section">
 
@@ -361,38 +616,64 @@ function home(v) {
       </div>
 
     </section>
+
   `;
 
-  document.querySelector('#add').onclick =
+
+  document.querySelector(
+    '#add'
+  ).onclick =
     accountSheet;
 
-  document.querySelector('#sync').onclick =
+
+  document.querySelector(
+    '#sync'
+  ).onclick =
     syncAll;
 
-  document.querySelector('#random').onclick =
+
+  document.querySelector(
+    '#random'
+  ).onclick =
     runRandom;
+
 }
 
+
+/* =========================
+   BATCH
+========================= */
+
 function renderBatch() {
-  const clips = state.clips
-    .filter(c => c.batch)
-    .slice(-10)
-    .reverse();
+
+  const clips =
+    state.clips
+      .filter(
+        c => c.batch
+      )
+      .slice(-10)
+      .reverse();
+
 
   if (!clips.length) {
+
     return `
       <div class="empty">
         No batch yet. Sync an account first,
         then tap RANDOM 10.
       </div>
     `;
+
   }
 
+
   return clips.map(c => `
+
     <div class="clip">
 
       ${
         c.preview
+
           ? `
             <img
               class="thumb"
@@ -400,10 +681,12 @@ function renderBatch() {
               loading="lazy"
             >
           `
+
           : `
             <div class="thumb"></div>
           `
       }
+
 
       <div>
 
@@ -411,26 +694,139 @@ function renderBatch() {
           ${statusLabel(c.status)}
         </span>
 
+
         <h3>
           ${esc(c.name)}
         </h3>
+
 
         <div class="muted">
           ${esc(c.source || '')}
         </div>
 
+
         ${
-          c.hook
+          c.summary
+
             ? `
-              <div class="hook">
-                ${esc(c.hook)}
+              <div
+                style="
+                  margin-top:10px;
+                  padding:11px;
+                  border-radius:12px;
+                  background:rgba(255,255,255,.05);
+                  font-size:13px;
+                  line-height:1.45;
+                "
+              >
+
+                <div
+                  class="muted"
+                  style="
+                    font-size:11px;
+                    text-transform:uppercase;
+                    letter-spacing:.08em;
+                    margin-bottom:4px;
+                  "
+                >
+                  AI analysis
+                </div>
+
+                ${esc(c.summary)}
+
               </div>
             `
+
             : ''
         }
 
+
+        ${
+          Array.isArray(
+            c.hookOptions
+          ) &&
+          c.hookOptions.length
+
+            ? `
+
+              <div
+                style="
+                  margin-top:11px;
+                "
+              >
+
+                <div
+                  class="muted"
+                  style="
+                    font-size:11px;
+                    text-transform:uppercase;
+                    letter-spacing:.08em;
+                    margin-bottom:7px;
+                  "
+                >
+                  Choose your hook
+                </div>
+
+
+                ${c.hookOptions
+                  .map(
+                    (hook, index) => `
+
+                      <button
+                        class="secondary"
+                        data-hook-id="${esc(c.id)}"
+                        data-hook-index="${index}"
+                        style="
+                          display:block;
+                          width:100%;
+                          text-align:left;
+                          margin-top:6px;
+                          ${
+                            c.hook === hook
+                              ? 'border:1px solid rgba(255,255,255,.6);'
+                              : ''
+                          }
+                        "
+                      >
+
+                        ${index + 1}.
+                        ${esc(hook)}
+
+                      </button>
+
+                    `
+                  )
+                  .join('')}
+
+              </div>
+
+            `
+
+            : ''
+        }
+
+
+        ${
+          c.hook
+
+            ? `
+              <div
+                class="hook"
+                style="
+                  margin-top:10px;
+                "
+              >
+                ${esc(c.hook)}
+              </div>
+            `
+
+            : ''
+        }
+
+
         ${
           c.caption
+
             ? `
               <div
                 class="muted"
@@ -442,11 +838,14 @@ function renderBatch() {
                 ${esc(c.caption)}
               </div>
             `
+
             : ''
         }
 
+
         ${
           c.videoUrl
+
             ? `
               <a
                 class="secondary"
@@ -462,8 +861,10 @@ function renderBatch() {
                 Open source Reel
               </a>
             `
+
             : ''
         }
+
 
         <div
           class="row"
@@ -474,11 +875,17 @@ function renderBatch() {
             class="secondary"
             data-remix="${esc(c.id)}"
           >
-            Remix
+            ${
+              c.status === 'analyzing'
+                ? 'Analyzing…'
+                : 'AI Analyze & Remix'
+            }
           </button>
+
 
           ${
             c.caption
+
               ? `
                 <button
                   class="secondary"
@@ -487,12 +894,17 @@ function renderBatch() {
                   Copy caption
                 </button>
               `
+
               : ''
           }
 
+
           ${
             c.jobId &&
-            c.status !== 'ready'
+            c.hook &&
+            c.status !== 'ready' &&
+            c.status !== 'rendering'
+
               ? `
                 <button
                   class="primary"
@@ -501,13 +913,36 @@ function renderBatch() {
                   Render
                 </button>
               `
+
               : ''
           }
 
         </div>
 
+
+        ${
+          c.status === 'analyzing'
+
+            ? `
+              <div
+                class="muted"
+                style="
+                  margin-top:8px;
+                  font-size:12px;
+                "
+              >
+                AI is watching the Reel and creating
+                hooks based on the actual content…
+              </div>
+            `
+
+            : ''
+        }
+
+
         ${
           c.outputUrl
+
             ? `
               <a
                 class="secondary"
@@ -523,11 +958,14 @@ function renderBatch() {
                 ↗ Open rendered video
               </a>
             `
+
             : ''
         }
 
+
         ${
           c.error
+
             ? `
               <div
                 style="
@@ -539,33 +977,76 @@ function renderBatch() {
                 ${esc(c.error)}
               </div>
             `
+
             : ''
         }
 
       </div>
 
     </div>
+
   `).join('');
+
 }
+
+
+/* =========================
+   STATUS
+========================= */
 
 function statusLabel(status) {
+
   const labels = {
-    selected: 'QUEUED',
-    queued: 'QUEUED',
-    rendering: 'RENDERING',
-    ready: 'READY',
-    error: 'ERROR',
-    used: 'USED',
-    reserved: 'RESERVED',
-    unused: 'UNUSED'
+
+    selected:
+      'QUEUED',
+
+    queued:
+      'QUEUED',
+
+    analyzing:
+      'ANALYZING',
+
+    rendering:
+      'RENDERING',
+
+    ready:
+      'READY',
+
+    error:
+      'ERROR',
+
+    used:
+      'USED',
+
+    reserved:
+      'RESERVED',
+
+    unused:
+      'UNUSED'
+
   };
 
-  return labels[status] ||
-    String(status || 'RAW').toUpperCase();
+
+  return (
+    labels[status] ||
+    String(
+      status ||
+      'RAW'
+    ).toUpperCase()
+  );
+
 }
 
+
+/* =========================
+   LIBRARY
+========================= */
+
 function library(v) {
+
   v.innerHTML = `
+
     <section class="hero">
 
       <div class="eyebrow">
@@ -583,18 +1064,22 @@ function library(v) {
 
     </section>
 
+
     <section class="section">
 
       ${
         state.clips.length
+
           ? state.clips
               .slice()
               .reverse()
               .map(c => `
+
                 <div class="clip">
 
                   ${
                     c.preview
+
                       ? `
                         <img
                           class="thumb"
@@ -602,10 +1087,12 @@ function library(v) {
                           loading="lazy"
                         >
                       `
+
                       : `
                         <div class="thumb"></div>
                       `
                   }
+
 
                   <div>
 
@@ -613,16 +1100,55 @@ function library(v) {
                       ${statusLabel(c.status)}
                     </span>
 
+
                     <h3>
                       ${esc(c.name)}
                     </h3>
+
 
                     <div class="muted">
                       ${esc(c.source || '')}
                     </div>
 
+
+                    ${
+                      c.summary
+
+                        ? `
+                          <div
+                            style="
+                              margin-top:9px;
+                              font-size:13px;
+                              line-height:1.45;
+                            "
+                          >
+                            ${esc(c.summary)}
+                          </div>
+                        `
+
+                        : ''
+                    }
+
+
+                    ${
+                      c.hook
+
+                        ? `
+                          <div
+                            class="hook"
+                            style="margin-top:9px"
+                          >
+                            ${esc(c.hook)}
+                          </div>
+                        `
+
+                        : ''
+                    }
+
+
                     ${
                       c.caption
+
                         ? `
                           <div
                             class="muted"
@@ -634,11 +1160,14 @@ function library(v) {
                             ${esc(c.caption)}
                           </div>
                         `
+
                         : ''
                     }
 
+
                     ${
                       c.videoUrl
+
                         ? `
                           <a
                             class="secondary"
@@ -654,27 +1183,41 @@ function library(v) {
                             Open Reel
                           </a>
                         `
+
                         : ''
                     }
 
                   </div>
 
                 </div>
+
               `)
               .join('')
+
           : `
-              <div class="empty">
-                Sync an Instagram account to build your library.
-              </div>
-            `
+
+            <div class="empty">
+              Sync an Instagram account to build your library.
+            </div>
+
+          `
       }
 
     </section>
+
   `;
+
 }
 
+
+/* =========================
+   SETTINGS
+========================= */
+
 function settings(v) {
+
   v.innerHTML = `
+
     <section class="hero">
 
       <div class="eyebrow">
@@ -686,10 +1229,11 @@ function settings(v) {
       </h1>
 
       <p>
-        These settings control the remix engine.
+        These settings control the AI remix engine.
       </p>
 
     </section>
+
 
     <section class="card">
 
@@ -697,11 +1241,13 @@ function settings(v) {
         Hook style
       </label>
 
+
       <select
         class="input"
         id="style"
         style="margin-top:7px"
       >
+
         ${[
           'Relatable',
           'Chaotic',
@@ -709,15 +1255,25 @@ function settings(v) {
           'Dry',
           'Curiosity',
           'Identity'
-        ].map(x => `
-          <option
-            value="${esc(x)}"
-            ${state.settings.style === x ? 'selected' : ''}
-          >
-            ${esc(x)}
-          </option>
-        `).join('')}
+        ]
+          .map(x => `
+
+            <option
+              value="${esc(x)}"
+              ${
+                state.settings.style === x
+                  ? 'selected'
+                  : ''
+              }
+            >
+              ${esc(x)}
+            </option>
+
+          `)
+          .join('')}
+
       </select>
+
 
       <label
         class="muted"
@@ -729,24 +1285,36 @@ function settings(v) {
         Text position
       </label>
 
+
       <select
         class="input"
         id="position"
         style="margin-top:7px"
       >
+
         ${[
           'Top',
           'Center',
           'Bottom'
-        ].map(x => `
-          <option
-            value="${esc(x)}"
-            ${state.settings.position === x ? 'selected' : ''}
-          >
-            ${esc(x)}
-          </option>
-        `).join('')}
+        ]
+          .map(x => `
+
+            <option
+              value="${esc(x)}"
+              ${
+                state.settings.position === x
+                  ? 'selected'
+                  : ''
+              }
+            >
+              ${esc(x)}
+            </option>
+
+          `)
+          .join('')}
+
       </select>
+
 
       <label
         class="muted"
@@ -758,24 +1326,36 @@ function settings(v) {
         Font
       </label>
 
+
       <select
         class="input"
         id="font"
         style="margin-top:7px"
       >
+
         ${[
           'Bold',
           'Clean',
           'Meme'
-        ].map(x => `
-          <option
-            value="${esc(x)}"
-            ${state.settings.font === x ? 'selected' : ''}
-          >
-            ${esc(x)}
-          </option>
-        `).join('')}
+        ]
+          .map(x => `
+
+            <option
+              value="${esc(x)}"
+              ${
+                state.settings.font === x
+                  ? 'selected'
+                  : ''
+              }
+            >
+              ${esc(x)}
+            </option>
+
+          `)
+          .join('')}
+
       </select>
+
 
       <div
         class="muted"
@@ -789,6 +1369,7 @@ function settings(v) {
         in this browser.
       </div>
 
+
       <button
         class="secondary"
         style="
@@ -799,6 +1380,7 @@ function settings(v) {
       >
         Test backend connection
       </button>
+
 
       <button
         class="secondary danger"
@@ -812,31 +1394,53 @@ function settings(v) {
       </button>
 
     </section>
+
   `;
 
-  ['style', 'position', 'font'].forEach(id => {
+
+  [
+    'style',
+    'position',
+    'font'
+  ].forEach(id => {
+
     const element =
-      document.querySelector('#' + id);
+      document.querySelector(
+        '#' + id
+      );
 
     if (element) {
-      element.onchange = e => {
-        state.settings[id] =
-          e.target.value;
 
-        save();
-      };
+      element.onchange =
+        e => {
+
+          state.settings[id] =
+            e.target.value;
+
+          save();
+
+        };
+
     }
+
   });
 
-  document.querySelector('#testBackend').onclick =
+
+  document.querySelector(
+    '#testBackend'
+  ).onclick =
     async () => {
 
-      toast('Testing backend…');
+      toast(
+        'Testing backend…'
+      );
 
       try {
 
         const result =
-          await api('/api/health');
+          await api(
+            '/api/health'
+          );
 
         toast(
           `Backend OK — version ${result.version}`
@@ -849,9 +1453,13 @@ function settings(v) {
         );
 
       }
+
     };
 
-  document.querySelector('#clear').onclick =
+
+  document.querySelector(
+    '#clear'
+  ).onclick =
     () => {
 
       if (
@@ -860,19 +1468,29 @@ function settings(v) {
         )
       ) {
 
-        localStorage.removeItem(KEY);
+        localStorage.removeItem(
+          KEY
+        );
 
         location.reload();
 
       }
 
     };
+
 }
 
+
+/* =========================
+   ACCOUNT SHEET
+========================= */
+
 function accountSheet() {
+
   document.body.insertAdjacentHTML(
     'beforeend',
     `
+
       <div
         class="sheet"
         id="sheet"
@@ -884,11 +1502,13 @@ function accountSheet() {
             Add Instagram inspiration
           </h2>
 
+
           <p class="muted">
             Enter a public Instagram username.
             Clipper will load its Reels through
             the secure backend.
           </p>
+
 
           <input
             class="input"
@@ -896,6 +1516,7 @@ function accountSheet() {
             placeholder="@account"
             autocomplete="off"
           >
+
 
           <select
             class="input"
@@ -917,6 +1538,7 @@ function accountSheet() {
 
           </select>
 
+
           <div
             class="row"
             style="margin-top:12px"
@@ -929,6 +1551,7 @@ function accountSheet() {
             >
               Cancel
             </button>
+
 
             <button
               class="primary"
@@ -943,57 +1566,88 @@ function accountSheet() {
         </div>
 
       </div>
+
     `
   );
 
-  document.querySelector('#cancel').onclick =
+
+  document.querySelector(
+    '#cancel'
+  ).onclick =
     closeSheet;
 
-  document.querySelector('#saveAccount').onclick =
+
+  document.querySelector(
+    '#saveAccount'
+  ).onclick =
     async () => {
 
       const username =
         document
-          .querySelector('#handle')
+          .querySelector(
+            '#handle'
+          )
           .value
           .trim()
-          .replace(/^@/, '');
+          .replace(
+            /^@/,
+            ''
+          );
+
 
       const category =
         document
-          .querySelector('#category')
+          .querySelector(
+            '#category'
+          )
           .value;
 
+
       if (!username) {
-        toast('Enter a username');
+
+        toast(
+          'Enter a username'
+        );
+
         return;
+
       }
+
 
       try {
 
-        toast('Adding account…');
+        toast(
+          'Adding account…'
+        );
+
 
         const account =
           await api(
             '/api/accounts',
             {
               method: 'POST',
-              body: JSON.stringify({
-                username,
-                category
-              })
+
+              body:
+                JSON.stringify({
+                  username,
+                  category
+                })
             }
           );
 
+
         closeSheet();
+
 
         toast(
           `@${account.username} added`
         );
 
+
         await syncInstagramAccount(
           account
         );
+
 
       } catch (error) {
 
@@ -1004,20 +1658,35 @@ function accountSheet() {
       }
 
     };
+
 }
+
 
 function closeSheet() {
+
   document
-    .querySelector('#sheet')
+    .querySelector(
+      '#sheet'
+    )
     ?.remove();
+
 }
 
-async function syncInstagramAccount(account) {
+
+/* =========================
+   INSTAGRAM SYNC
+========================= */
+
+async function syncInstagramAccount(
+  account
+) {
+
   try {
 
     toast(
       `Syncing @${account.username}…`
     );
+
 
     const result =
       await api(
@@ -1028,11 +1697,14 @@ async function syncInstagramAccount(account) {
         }
       );
 
+
     toast(
       `Sync complete — ${result.added} new Reels`
     );
 
+
     await loadData();
+
 
   } catch (error) {
 
@@ -1041,9 +1713,12 @@ async function syncInstagramAccount(account) {
     );
 
   }
+
 }
 
+
 async function syncAll() {
+
   if (!state.accounts.length) {
 
     toast(
@@ -1051,43 +1726,70 @@ async function syncAll() {
     );
 
     return;
+
   }
+
 
   toast(
     'Syncing Instagram accounts…'
   );
 
-  for (const account of state.accounts) {
-    await syncInstagramAccount(account);
+
+  for (
+    const account
+    of state.accounts
+  ) {
+
+    await syncInstagramAccount(
+      account
+    );
+
   }
+
 }
 
+
+/* =========================
+   RANDOM 10
+========================= */
+
 async function runRandom() {
+
   try {
 
     toast(
       'Selecting 10 random Reels…'
     );
 
+
     const result =
       await api(
         '/api/batch/random',
         {
           method: 'POST',
-          body: JSON.stringify({})
+
+          body:
+            JSON.stringify({})
         }
       );
 
+
     toast(
-      `10 Reels selected`
+      '10 Reels selected'
     );
+
 
     await loadData();
 
+
     window.scrollTo({
-      top: document.body.scrollHeight,
-      behavior: 'smooth'
+      top:
+        document.body.scrollHeight,
+
+      behavior:
+        'smooth'
     });
+
 
   } catch (error) {
 
@@ -1096,95 +1798,207 @@ async function runRandom() {
     );
 
   }
+
 }
 
-function makeHook() {
-  const style =
-    state.settings.style;
 
-  const hooks = {
+/* =========================
+   AI ANALYSIS
+========================= */
 
-    Relatable: [
-      'POV: you thought this was going to go differently',
-      'That moment when you realize you messed up',
-      'Everyone has that one moment they wish they could delete'
-    ],
+async function analyzeClip(id) {
 
-    Chaotic: [
-      'This escalated way faster than it needed to',
-      'Nobody had this on their 2026 bingo card',
-      'The exact second everything went off the rails'
-    ],
-
-    Savage: [
-      'The confidence was there. The plan was not.',
-      'This is where the whole situation fell apart',
-      'One decision. Immediate regret.'
-    ],
-
-    Dry: [
-      'Well, that went exactly as expected.',
-      'A completely normal decision with normal consequences.',
-      'Nothing to see here. Everything is fine.'
-    ],
-
-    Curiosity: [
-      'Watch the last few seconds before judging this',
-      'The ending changes the entire context',
-      'You need to see what happens after this'
-    ],
-
-    Identity: [
-      'If you have ever been the friend who says "trust me"',
-      'Every group has a person like this',
-      'POV: you are the one who always makes it worse'
-    ]
-
-  };
-
-  const list =
-    hooks[style] ||
-    hooks.Relatable;
-
-  return list[
-    Math.floor(
-      Math.random() * list.length
-    )
-  ];
-}
-
-function makeCaption() {
-  return (
-    'One of those moments that starts normally ' +
-    'and somehow turns into the only part everyone remembers.\n\n' +
-    'Remixed with Clipper.'
-  );
-}
-
-function remix(id) {
   const clip =
     state.clips.find(
       c => c.id === id
     );
 
+
   if (!clip) return;
 
-  clip.hook = makeHook();
-  clip.caption = makeCaption();
+
+  if (
+    clip.status ===
+    'analyzing'
+  ) {
+    return;
+  }
+
+
+  if (!clip.videoUrl) {
+
+    toast(
+      'This Reel has no video URL'
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+    clip.status =
+      'analyzing';
+
+    clip.error =
+      null;
+
+    save();
+    render();
+
+
+    toast(
+      'AI is watching the Reel…'
+    );
+
+
+    const result =
+      await api(
+        `/api/reels/${encodeURIComponent(id)}/analyze`,
+        {
+          method: 'POST',
+
+          body:
+            JSON.stringify({
+              style:
+                state.settings.style
+            })
+        }
+      );
+
+
+    clip.summary =
+      result.summary || '';
+
+
+    clip.hookOptions =
+      Array.isArray(
+        result.hooks
+      )
+        ? result.hooks
+        : [];
+
+
+    clip.hook =
+      clip.hookOptions[0] ||
+      '';
+
+
+    clip.caption =
+      result.caption ||
+      '';
+
+
+    clip.status =
+      'selected';
+
+
+    clip.error =
+      null;
+
+
+    save();
+    render();
+
+
+    toast(
+      `${clip.hookOptions.length} AI hooks generated`
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      'AI analysis failed:',
+      error
+    );
+
+
+    clip.status =
+      'error';
+
+
+    clip.error =
+      error.message;
+
+
+    save();
+    render();
+
+
+    toast(
+      `AI analysis failed: ${error.message}`
+    );
+
+  }
+
+}
+
+
+/* =========================
+   SELECT HOOK
+========================= */
+
+function selectHook(
+  id,
+  index
+) {
+
+  const clip =
+    state.clips.find(
+      c => c.id === id
+    );
+
+
+  if (!clip) return;
+
+
+  if (
+    !Array.isArray(
+      clip.hookOptions
+    )
+  ) {
+    return;
+  }
+
+
+  const hook =
+    clip.hookOptions[index];
+
+
+  if (!hook) return;
+
+
+  clip.hook =
+    hook;
+
 
   save();
   render();
 
+
   toast(
-    'New hook generated'
+    'Hook selected'
   );
+
 }
 
-async function renderJob(jobId) {
+
+/* =========================
+   RENDER JOB
+========================= */
+
+async function renderJob(
+  jobId
+) {
+
   const clip =
     state.clips.find(
-      c => c.jobId === jobId
+      c =>
+        c.jobId === jobId
     );
+
 
   if (!clip) {
 
@@ -1193,61 +2007,94 @@ async function renderJob(jobId) {
     );
 
     return;
+
   }
+
+
+  if (!clip.hook) {
+
+    toast(
+      'Choose a hook first'
+    );
+
+    return;
+
+  }
+
 
   try {
 
-    clip.status = 'rendering';
+    clip.status =
+      'rendering';
 
+    clip.error =
+      null;
+
+    save();
     render();
+
 
     toast(
       'Rendering video…'
     );
+
 
     const result =
       await api(
         `/api/jobs/${jobId}/render`,
         {
           method: 'POST',
-          body: JSON.stringify({
-            hook:
-              clip.hook ||
-              makeHook(),
 
-            caption:
-              clip.caption ||
-              makeCaption()
-          })
+          body:
+            JSON.stringify({
+
+              hook:
+                clip.hook,
+
+              caption:
+                clip.caption || ''
+
+            })
         }
       );
 
+
     clip.hook =
-      result.hook;
+      result.hook ||
+      clip.hook;
+
 
     clip.caption =
-      result.caption;
+      result.caption ||
+      clip.caption;
+
 
     clip.status =
       result.status;
 
+
     clip.ready =
-      result.status === 'ready';
+      result.status ===
+      'ready';
+
 
     clip.outputUrl =
       result.outputUrl ||
       null;
 
+
     clip.error =
       result.error ||
       null;
 
-    save();
 
+    save();
     render();
 
+
     if (
-      result.status === 'ready'
+      result.status ===
+      'ready'
     ) {
 
       toast(
@@ -1256,32 +2103,52 @@ async function renderJob(jobId) {
 
     }
 
+
   } catch (error) {
 
     clip.status =
       'error';
 
+
     clip.error =
       error.message;
 
-    save();
 
+    save();
     render();
+
 
     toast(
       `Render failed: ${error.message}`
     );
 
   }
+
 }
 
+
+/* =========================
+   COPY CAPTION
+========================= */
+
 function copyCaption(id) {
+
   const clip =
     state.clips.find(
       c => c.id === id
     );
 
-  if (!clip?.caption) return;
+
+  if (!clip?.caption) {
+
+    toast(
+      'No caption available'
+    );
+
+    return;
+
+  }
+
 
   if (
     navigator.clipboard &&
@@ -1289,7 +2156,9 @@ function copyCaption(id) {
   ) {
 
     navigator.clipboard
-      .writeText(clip.caption)
+      .writeText(
+        clip.caption
+      )
       .then(
         () =>
           toast(
@@ -1310,30 +2179,73 @@ function copyCaption(id) {
     );
 
   }
+
 }
+
+
+/* =========================
+   GLOBAL CLICK HANDLER
+========================= */
 
 document.addEventListener(
   'click',
   event => {
+
+
+    /* =========================
+       HOOK SELECTION
+    ========================= */
+
+    const hookButton =
+      event.target.closest(
+        '[data-hook-id]'
+      );
+
+
+    if (hookButton) {
+
+      selectHook(
+        hookButton.dataset.hookId,
+        Number(
+          hookButton.dataset.hookIndex
+        )
+      );
+
+      return;
+
+    }
+
+
+    /* =========================
+       AI REMIX / ANALYZE
+    ========================= */
 
     const remixButton =
       event.target.closest(
         '[data-remix]'
       );
 
+
     if (remixButton) {
 
-      remix(
+      analyzeClip(
         remixButton.dataset.remix
       );
 
       return;
+
     }
+
+
+    /* =========================
+       COPY
+    ========================= */
 
     const copyButton =
       event.target.closest(
         '[data-copy]'
       );
+
 
     if (copyButton) {
 
@@ -1342,12 +2254,19 @@ document.addEventListener(
       );
 
       return;
+
     }
+
+
+    /* =========================
+       RENDER
+    ========================= */
 
     const renderButton =
       event.target.closest(
         '[data-render]'
       );
+
 
     if (renderButton) {
 
@@ -1355,9 +2274,16 @@ document.addEventListener(
         renderButton.dataset.render
       );
 
+      return;
+
     }
 
   }
 );
+
+
+/* =========================
+   START
+========================= */
 
 app();
