@@ -4,6 +4,7 @@ const KEY = 'clipper-state-v2';
 const state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
   accounts: [],
   clips: [],
+  batches: [],
   settings: {
     style: 'Relatable',
     position: 'Top',
@@ -14,6 +15,10 @@ const state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
 
 function save() {
   localStorage.setItem(KEY, JSON.stringify(state));
+}
+
+function uid() {
+  return crypto.randomUUID ? crypto.randomUUID() : Date.now() + Math.random();
 }
 
 function esc(s) {
@@ -36,15 +41,12 @@ async function api(path, options = {}) {
   });
 
   let data = {};
-
   try {
     data = await response.json();
   } catch {}
 
   if (!response.ok) {
-    throw new Error(
-      data.error || `Request failed (${response.status})`
-    );
+    throw new Error(data.error || `Request failed (${response.status})`);
   }
 
   return data;
@@ -55,191 +57,64 @@ function toast(message) {
   d.className = 'toast';
   d.textContent = message;
   document.body.appendChild(d);
-
   setTimeout(() => d.remove(), 2200);
 }
 
 function app() {
   document.querySelector('#app').innerHTML = `
     <main class="shell">
-
       <div class="top">
         <div class="brand">Clipper</div>
-
-        <div class="pill" id="counter">
-          Loading…
+        <div class="pill">
+          ${state.clips.length} clips · ${state.accounts.length} sources
         </div>
       </div>
-
       <div id="view"></div>
-
     </main>
 
     <nav class="nav">
       <div class="navin">
-
-        <button data-tab="home">
-          ⚡<br>Remix
-        </button>
-
-        <button data-tab="library">
-          ▣<br>Library
-        </button>
-
-        <button data-tab="settings">
-          ⚙<br>Settings
-        </button>
-
+        <button data-tab="home">⚡<br>Remix</button>
+        <button data-tab="library">▣<br>Library</button>
+        <button data-tab="settings">⚙<br>Settings</button>
       </div>
     </nav>
   `;
+
+  render();
 
   document.querySelectorAll('[data-tab]').forEach(button => {
     button.onclick = () => {
       state.tab = button.dataset.tab;
       save();
       render();
-      loadData();
     };
   });
-
-  render();
-  loadData();
-}
-
-async function loadData() {
-  try {
-    const [accounts, reels, batches] = await Promise.all([
-      api('/api/accounts'),
-      api('/api/reels'),
-      api('/api/batches')
-    ]);
-
-    state.accounts = accounts;
-
-    state.clips = [];
-
-    reels.forEach(reel => {
-      state.clips.push({
-        id: reel.id,
-        name: reel.caption
-          ? reel.caption.slice(0, 60)
-          : 'Instagram Reel',
-        source: '@' + reel.username,
-        sourceId: reel.sourceId,
-        videoUrl: reel.videoUrl,
-        permalink: reel.permalink,
-        preview: reel.previewUrl || '',
-        caption: reel.caption || '',
-        used: reel.used,
-        reserved: reel.reserved,
-        ready: false,
-        status: reel.used
-          ? 'used'
-          : reel.reserved
-            ? 'reserved'
-            : 'unused'
-      });
-    });
-
-    batches.forEach(item => {
-      const batch = item.batch;
-      const jobs = item.jobs || [];
-      const batchReels = item.reels || [];
-
-      jobs.forEach(job => {
-        const reel = batchReels.find(
-          r => r.id === job.reelId
-        );
-
-        if (!reel) return;
-
-        const existing = state.clips.find(
-          c => c.id === reel.id
-        );
-
-        if (existing) {
-          existing.batch = batch.id;
-          existing.jobId = job.id;
-          existing.hook = job.hook || '';
-          existing.caption =
-            job.caption || reel.caption || '';
-          existing.status = job.status;
-          existing.ready = job.status === 'ready';
-          existing.outputUrl = job.outputUrl || null;
-          existing.error = job.error || null;
-        }
-      });
-    });
-
-    save();
-
-    const counter = document.querySelector('#counter');
-
-    if (counter) {
-      counter.textContent =
-        `${state.clips.length} clips · ${state.accounts.length} sources`;
-    }
-
-    render();
-
-  } catch (error) {
-    console.error(error);
-    toast(`Backend: ${error.message}`);
-  }
 }
 
 function render() {
-  document
-    .querySelectorAll('.nav button')
-    .forEach(button => {
-      button.classList.toggle(
-        'active',
-        button.dataset.tab === state.tab
-      );
-    });
+  document.querySelectorAll('.nav button').forEach(button => {
+    button.classList.toggle('active', button.dataset.tab === state.tab);
+  });
 
   const view = document.querySelector('#view');
 
-  if (!view) return;
-
-  if (state.tab === 'home') {
-    home(view);
-  }
-
-  if (state.tab === 'library') {
-    library(view);
-  }
-
-  if (state.tab === 'settings') {
-    settings(view);
-  }
+  if (state.tab === 'home') home(view);
+  if (state.tab === 'library') library(view);
+  if (state.tab === 'settings') settings(view);
 }
 
-function home(v) {
-  const unused = state.clips.filter(
-    c => !c.used && !c.reserved
-  ).length;
-
-  const ready = state.clips.filter(
-    c => c.ready
-  ).length;
+async function home(v) {
+  const unused = state.clips.filter(c => !c.used).length;
 
   v.innerHTML = `
     <section class="hero">
-
-      <div class="eyebrow">
-        Meme clipping engine
-      </div>
-
-      <h1>
-        10 clips.<br>
-        One tap.
-      </h1>
+      <div class="eyebrow">Meme clipping engine</div>
+      <h1>10 clips.<br>One tap.</h1>
 
       <p>
-        Pick a batch, remix the text and render
-        finished videos through the Clipper backend.
+        Pick a batch, generate fresh hooks, remix the text
+        and keep track of what you've already used.
       </p>
 
       <button class="primary" id="random">
@@ -247,131 +122,88 @@ function home(v) {
       </button>
 
       <div class="row" style="margin-top:10px">
-
-        <button
-          class="secondary"
-          style="flex:1"
-          id="add"
-        >
+        <button class="secondary" style="flex:1" id="add">
           ＋ Inspiration account
         </button>
 
-        <button
-          class="secondary"
-          style="flex:1"
-          id="sync"
-        >
+        <button class="secondary" style="flex:1" id="sync">
           ↻ Sync Instagram
         </button>
-
       </div>
 
+      <div id="prog"></div>
     </section>
 
     <div class="grid">
-
       <div class="card">
-        <div class="muted">
-          Unused
-        </div>
-
-        <div class="stat">
-          ${unused}
-        </div>
+        <div class="muted">Unused</div>
+        <div class="stat">${unused}</div>
       </div>
 
       <div class="card">
-        <div class="muted">
-          Ready
-        </div>
-
+        <div class="muted">Ready</div>
         <div class="stat">
-          ${ready}
+          ${state.clips.filter(c => c.ready).length}
         </div>
       </div>
-
     </div>
 
     <section class="section">
-
-      <h2>
-        Inspiration pool
-      </h2>
+      <h2>Inspiration pool</h2>
 
       ${
         state.accounts.length
-          ? state.accounts.map(account => `
-              <div class="account">
-
-                <div class="avatar">
-                  ${esc(
-                    account.username
-                      .slice(0, 1)
-                      .toUpperCase()
-                  )}
-                </div>
-
-                <div>
-
-                  <div class="name">
-                    @${esc(account.username)}
-                  </div>
-
-                  <div class="handle">
-                    ${esc(
-                      account.category || ''
-                    )}
-                  </div>
-
-                </div>
-
-                <div class="spacer"></div>
-
-                <span class="tag">
-                  ${account.active ? 'ON' : 'OFF'}
-                </span>
-
+          ? state.accounts.map(a => `
+            <div class="account">
+              <div class="avatar">
+                ${esc(a.username.slice(0, 1).toUpperCase())}
               </div>
-            `).join('')
+
+              <div>
+                <div class="name">
+                  @${esc(a.username)}
+                </div>
+
+                <div class="handle">
+                  ${esc(a.category || '')}
+                </div>
+              </div>
+
+              <div class="spacer"></div>
+
+              <span class="tag">
+                ${a.active ? 'ON' : 'OFF'}
+              </span>
+            </div>
+          `).join('')
           : `
-              <div class="empty">
-                Add Instagram inspiration accounts to start.
-              </div>
-            `
+            <div class="empty">
+              Add Instagram inspiration accounts to start.
+            </div>
+          `
       }
-
     </section>
 
     <section class="section">
-
-      <h2>
-        Latest batch
-      </h2>
-
+      <h2>Latest batch</h2>
       <div id="batch">
         ${renderBatch()}
       </div>
-
     </section>
   `;
 
-  document.querySelector('#add').onclick =
-    accountSheet;
-
-  document.querySelector('#sync').onclick =
-    syncAll;
-
-  document.querySelector('#random').onclick =
-    runRandom;
+  document.querySelector('#add').onclick = accountSheet;
+  document.querySelector('#sync').onclick = syncAll;
+  document.querySelector('#random').onclick = runRandom;
 }
 
 function renderBatch() {
-  const clips = state.clips
+  const arr = state.clips
     .filter(c => c.batch)
     .slice(-10)
     .reverse();
 
-  if (!clips.length) {
+  if (!arr.length) {
     return `
       <div class="empty">
         No batch yet. Tap RANDOM 10.
@@ -379,31 +211,23 @@ function renderBatch() {
     `;
   }
 
-  return clips.map(c => `
+  return arr.map(c => `
     <div class="clip">
 
       ${
         c.preview
-          ? `
-            <img
-              class="thumb"
-              src="${esc(c.preview)}"
-              loading="lazy"
-            >
-          `
-          : `
-            <div class="thumb"></div>
-          `
+          ? `<img class="thumb" src="${esc(c.preview)}">`
+          : `<div class="thumb"></div>`
       }
 
       <div>
 
         <span class="tag">
-          ${statusLabel(c.status)}
+          ${c.status === 'ready' ? 'READY' : 'QUEUED'}
         </span>
 
         <h3>
-          ${esc(c.name)}
+          ${esc(c.name || 'Instagram Reel')}
         </h3>
 
         <div class="muted">
@@ -411,70 +235,34 @@ function renderBatch() {
         </div>
 
         ${
-          c.hook
-            ? `
-              <div class="hook">
-                ${esc(c.hook)}
-              </div>
-            `
-            : ''
-        }
-
-        ${
-          c.caption
-            ? `
-              <div
-                class="muted"
-                style="
-                  margin-top:8px;
-                  white-space:pre-line;
-                "
-              >
-                ${esc(c.caption)}
-              </div>
-            `
-            : ''
-        }
-
-        ${
           c.videoUrl
             ? `
               <a
                 class="secondary"
-                style="
-                  display:inline-block;
-                  margin-top:8px;
-                  text-decoration:none;
-                "
+                style="display:inline-block;margin-top:6px;text-decoration:none"
                 href="${esc(c.videoUrl)}"
                 target="_blank"
                 rel="noopener"
               >
-                Open source Reel
+                Open Reel video
               </a>
             `
             : ''
         }
 
-        <div
-          class="row"
-          style="margin-top:8px"
-        >
+        <div class="hook">
+          ${esc(c.hook || 'Tap Remix to generate a hook.')}
+        </div>
 
-          <button
-            class="secondary"
-            data-remix="${esc(c.id)}"
-          >
+        <div class="row" style="margin-top:8px">
+          <button class="secondary" data-remix="${esc(c.id)}">
             Remix
           </button>
 
           ${
             c.caption
               ? `
-                <button
-                  class="secondary"
-                  data-copy="${esc(c.id)}"
-                >
+                <button class="secondary" data-copy="${esc(c.id)}">
                   Copy caption
                 </button>
               `
@@ -482,31 +270,21 @@ function renderBatch() {
           }
 
           ${
-            c.jobId &&
-            c.status !== 'ready'
+            c.jobId
               ? `
-                <button
-                  class="primary"
-                  data-render="${esc(c.jobId)}"
-                >
+                <button class="primary" data-render="${esc(c.jobId)}">
                   Render
                 </button>
               `
               : ''
           }
-
         </div>
 
         ${
           c.outputUrl
             ? `
               <a
-                class="secondary"
-                style="
-                  display:inline-block;
-                  margin-top:8px;
-                  text-decoration:none;
-                "
+                class="video-link"
                 href="${API}${esc(c.outputUrl)}"
                 target="_blank"
                 rel="noopener"
@@ -517,64 +295,29 @@ function renderBatch() {
             : ''
         }
 
-        ${
-          c.error
-            ? `
-              <div
-                style="
-                  margin-top:8px;
-                  color:#ff7777;
-                  font-size:12px;
-                "
-              >
-                ${esc(c.error)}
-              </div>
-            `
-            : ''
-        }
-
       </div>
-
     </div>
   `).join('');
-}
-
-function statusLabel(status) {
-  const labels = {
-    selected: 'QUEUED',
-    queued: 'QUEUED',
-    rendering: 'RENDERING',
-    ready: 'READY',
-    error: 'ERROR',
-    used: 'USED',
-    reserved: 'RESERVED',
-    unused: 'UNUSED'
-  };
-
-  return labels[status] || String(status || 'RAW').toUpperCase();
 }
 
 function library(v) {
   v.innerHTML = `
     <section class="hero">
+      <div class="eyebrow">Library</div>
 
-      <div class="eyebrow">
-        Library
-      </div>
-
-      <h1>
-        ${state.clips.length} clips
-      </h1>
+      <h1>${state.clips.length} clips</h1>
 
       <p>
-        Reels are stored and tracked by the Clipper backend.
-        Used clips won't be randomly selected again.
+        Used clips stay remembered so your random batches
+        don't keep recycling the same content.
       </p>
 
+      <button class="primary" id="import">
+        Import from Photos
+      </button>
     </section>
 
     <section class="section">
-
       ${
         state.clips.length
           ? state.clips
@@ -585,22 +328,17 @@ function library(v) {
 
                   ${
                     c.preview
-                      ? `
-                        <img
-                          class="thumb"
-                          src="${esc(c.preview)}"
-                          loading="lazy"
-                        >
-                      `
-                      : `
-                        <div class="thumb"></div>
-                      `
+                      ? `<img class="thumb" src="${esc(c.preview)}">`
+                      : `<div class="thumb"></div>`
                   }
 
                   <div>
+                    <span class="tag">
+                      ${c.used ? 'USED' : 'UNUSED'}
+                    </span>
 
                     <span class="tag">
-                      ${statusLabel(c.status)}
+                      ${c.ready ? 'READY' : 'RAW'}
                     </span>
 
                     <h3>
@@ -608,77 +346,41 @@ function library(v) {
                     </h3>
 
                     <div class="muted">
-                      ${esc(c.source || '')}
+                      ${esc(c.source || 'Imported')}
                     </div>
 
                     ${
-                      c.caption
-                        ? `
-                          <div
-                            class="muted"
-                            style="
-                              margin-top:7px;
-                              white-space:pre-line;
-                            "
-                          >
-                            ${esc(c.caption)}
-                          </div>
-                        `
+                      c.hook
+                        ? `<div class="hook">${esc(c.hook)}</div>`
                         : ''
                     }
-
-                    ${
-                      c.videoUrl
-                        ? `
-                          <a
-                            class="secondary"
-                            style="
-                              display:inline-block;
-                              margin-top:8px;
-                              text-decoration:none;
-                            "
-                            href="${esc(c.videoUrl)}"
-                            target="_blank"
-                            rel="noopener"
-                          >
-                            Open Reel
-                          </a>
-                        `
-                        : ''
-                    }
-
                   </div>
 
                 </div>
               `)
               .join('')
           : `
-              <div class="empty">
-                Sync an Instagram account to build your library.
-              </div>
-            `
+            <div class="empty">
+              Import videos to build your clipping library.
+            </div>
+          `
       }
-
     </section>
   `;
+
+  document.querySelector('#import').onclick = importInput;
 }
 
 function settings(v) {
   v.innerHTML = `
     <section class="hero">
+      <div class="eyebrow">Settings</div>
 
-      <div class="eyebrow">
-        Settings
-      </div>
-
-      <h1>
-        Make it yours.
-      </h1>
+      <h1>Make it yours.</h1>
 
       <p>
         These defaults control the remix engine.
       </p>
-
     </section>
 
     <section class="card">
@@ -687,11 +389,7 @@ function settings(v) {
         Hook style
       </label>
 
-      <select
-        class="input"
-        id="style"
-        style="margin-top:7px"
-      >
+      <select class="input" id="style" style="margin-top:7px">
         ${[
           'Relatable',
           'Chaotic',
@@ -700,9 +398,7 @@ function settings(v) {
           'Curiosity',
           'Identity'
         ].map(x => `
-          <option
-            ${state.settings.style === x ? 'selected' : ''}
-          >
+          <option ${state.settings.style === x ? 'selected' : ''}>
             ${x}
           </option>
         `).join('')}
@@ -710,10 +406,7 @@ function settings(v) {
 
       <label
         class="muted"
-        style="
-          display:block;
-          margin-top:15px;
-        "
+        style="display:block;margin-top:15px"
       >
         Text position
       </label>
@@ -723,14 +416,8 @@ function settings(v) {
         id="position"
         style="margin-top:7px"
       >
-        ${[
-          'Top',
-          'Center',
-          'Bottom'
-        ].map(x => `
-          <option
-            ${state.settings.position === x ? 'selected' : ''}
-          >
+        ${['Top', 'Center', 'Bottom'].map(x => `
+          <option ${state.settings.position === x ? 'selected' : ''}>
             ${x}
           </option>
         `).join('')}
@@ -738,10 +425,7 @@ function settings(v) {
 
       <label
         class="muted"
-        style="
-          display:block;
-          margin-top:15px;
-        "
+        style="display:block;margin-top:15px"
       >
         Font
       </label>
@@ -751,14 +435,8 @@ function settings(v) {
         id="font"
         style="margin-top:7px"
       >
-        ${[
-          'Bold',
-          'Clean',
-          'Meme'
-        ].map(x => `
-          <option
-            ${state.settings.font === x ? 'selected' : ''}
-          >
+        ${['Bold', 'Clean', 'Meme'].map(x => `
+          <option ${state.settings.font === x ? 'selected' : ''}>
             ${x}
           </option>
         `).join('')}
@@ -766,98 +444,51 @@ function settings(v) {
 
       <div
         class="muted"
-        style="
-          font-size:12px;
-          margin-top:18px;
-        "
+        style="font-size:12px;margin-top:18px"
       >
-        Apify is securely connected through the backend.
-        The Apify token is not stored in this browser.
+        Apify is now connected through the secure backend.
+        Your Apify token is no longer stored in this browser.
       </div>
 
       <button
-        class="secondary"
-        style="
-          width:100%;
-          margin-top:18px;
-        "
-        id="testBackend"
-      >
-        Test backend connection
-      </button>
-
-      <button
         class="secondary danger"
-        style="
-          width:100%;
-          margin-top:10px;
-        "
+        style="width:100%;margin-top:18px"
         id="clear"
       >
-        Reset local settings
+        Reset all local data
       </button>
 
     </section>
   `;
 
   ['style', 'position', 'font'].forEach(id => {
-    document.querySelector('#' + id).onchange =
-      e => {
-        state.settings[id] =
-          e.target.value;
-
-        save();
-      };
+    document.querySelector('#' + id).onchange = e => {
+      state.settings[id] = e.target.value;
+      save();
+    };
   });
 
-  document.querySelector('#testBackend').onclick =
-    async () => {
-      try {
-        const result =
-          await api('/api/health');
-
-        toast(
-          `Backend OK — version ${result.version}`
-        );
-      } catch (error) {
-        toast(
-          `Backend error: ${error.message}`
-        );
-      }
-    };
-
-  document.querySelector('#clear').onclick =
-    () => {
-      if (
-        confirm(
-          'Reset Clipper local settings?'
-        )
-      ) {
-        localStorage.removeItem(KEY);
-        location.reload();
-      }
-    };
+  document.querySelector('#clear').onclick = () => {
+    if (confirm('Delete all Clipper data?')) {
+      localStorage.removeItem(KEY);
+      location.reload();
+    }
+  };
 }
 
 function accountSheet() {
   document.body.insertAdjacentHTML(
     'beforeend',
     `
-      <div
-        class="sheet"
-        id="sheet"
-      >
+      <div class="sheet" id="sheet">
 
         <div class="modal">
 
-          <h2>
-            Add Instagram inspiration
-          </h2>
+          <h2>Add Instagram inspiration</h2>
 
           <p class="muted">
             Enter a public Instagram username.
-            Reels will be loaded through the
-            Clipper backend.
+            Reels will be loaded through your Clipper backend.
           </p>
 
           <input
@@ -871,23 +502,12 @@ function accountSheet() {
             id="category"
             style="margin-top:9px"
           >
-            <option value="meme">
-              Meme
-            </option>
-
-            <option value="movie_tv">
-              Movie / TV
-            </option>
-
-            <option value="music">
-              Music
-            </option>
+            <option value="meme">Meme</option>
+            <option value="movie_tv">Movie / TV</option>
+            <option value="music">Music</option>
           </select>
 
-          <div
-            class="row"
-            style="margin-top:12px"
-          >
+          <div class="row" style="margin-top:12px">
 
             <button
               class="secondary"
@@ -907,139 +527,174 @@ function accountSheet() {
 
           </div>
 
+          <p
+            class="muted"
+            style="font-size:12px;margin-top:12px"
+          >
+            Source: Clipper backend → Apify.
+          </p>
+
         </div>
 
       </div>
     `
   );
 
-  document.querySelector('#cancel').onclick =
-    closeSheet;
+  document.querySelector('#cancel').onclick = closeSheet;
 
-  document.querySelector('#saveAccount').onclick =
-    async () => {
+  document.querySelector('#saveAccount').onclick = async () => {
+    const username = document
+      .querySelector('#handle')
+      .value
+      .trim()
+      .replace(/^@/, '');
 
-      const username =
-        document
-          .querySelector('#handle')
-          .value
-          .trim()
-          .replace(/^@/, '');
+    const category = document.querySelector('#category').value;
 
-      const category =
-        document.querySelector('#category').value;
+    if (!username) {
+      toast('Enter a username');
+      return;
+    }
 
-      if (!username) {
-        toast('Enter a username');
-        return;
+    try {
+      toast('Adding Instagram account…');
+
+      const account = await api('/api/accounts', {
+        method: 'POST',
+        body: JSON.stringify({
+          username,
+          category
+        })
+      });
+
+      const existing = state.accounts.find(
+        a => a.id === account.id
+      );
+
+      if (existing) {
+        Object.assign(existing, account);
+      } else {
+        state.accounts.push(account);
       }
 
-      try {
+      save();
+      closeSheet();
+      render();
 
-        toast('Adding account…');
+      await syncInstagramAccount(account);
 
-        const account =
-          await api(
-            '/api/accounts',
-            {
-              method: 'POST',
-              body: JSON.stringify({
-                username,
-                category
-              })
-            }
-          );
-
-        closeSheet();
-
-        toast(
-          `@${account.username} added`
-        );
-
-        await syncInstagramAccount(
-          account
-        );
-
-      } catch (error) {
-
-        toast(error.message);
-
-      }
-    };
+    } catch (error) {
+      toast(error.message);
+    }
+  };
 }
 
 function closeSheet() {
-  document
-    .querySelector('#sheet')
-    ?.remove();
+  document.querySelector('#sheet')?.remove();
 }
 
 async function syncInstagramAccount(account) {
   try {
+    toast(`Syncing @${account.username}…`);
 
-    toast(
-      `Syncing @${account.username}…`
+    const result = await api(
+      `/api/accounts/${account.id}/sync`,
+      {
+        method: 'POST',
+        body: JSON.stringify({})
+      }
     );
 
-    const result =
-      await api(
-        `/api/accounts/${account.id}/sync`,
-        {
-          method: 'POST',
-          body: JSON.stringify({})
-        }
-      );
-
-    toast(
-      `Sync complete — ${result.added} new Reels`
+    const local = state.accounts.find(
+      a => a.id === account.id
     );
 
-    await loadData();
+    if (local) {
+      Object.assign(local, result.account);
+    }
+
+    save();
+
+    toast(
+      `Sync complete — ${result.added} new Reels.`
+    );
+
+    render();
 
   } catch (error) {
-
-    toast(
-      `Sync failed: ${error.message}`
-    );
+    toast(`Sync failed: ${error.message}`);
   }
 }
 
 async function syncAll() {
   if (!state.accounts.length) {
-    toast(
-      'Add an Instagram account first'
-    );
+    toast('Add an Instagram account first');
     return;
   }
 
-  toast('Syncing Instagram accounts…');
-
   for (const account of state.accounts) {
-    await syncInstagramAccount(account);
+    try {
+      await syncInstagramAccount(account);
+    } catch {}
   }
 }
 
 async function runRandom() {
   try {
+    toast('Selecting 10 random Reels…');
 
-    toast(
-      'Selecting 10 random Reels…'
+    const result = await api(
+      '/api/batch/random',
+      {
+        method: 'POST',
+        body: JSON.stringify({})
+      }
     );
 
-    const result =
-      await api(
-        '/api/batch/random',
-        {
-          method: 'POST',
-          body: JSON.stringify({})
-        }
+    const batch = result.batch;
+
+    if (!state.batches.find(b => b.id === batch.id)) {
+      state.batches.push(batch);
+    }
+
+    result.reels.forEach((reel, index) => {
+      const job = result.jobs[index];
+
+      const clip = {
+        id: reel.id,
+        name: reel.caption
+          ? reel.caption.slice(0, 60)
+          : `Instagram Reel ${index + 1}`,
+        source: '@' + reel.username,
+        sourceId: reel.sourceId,
+        videoUrl: reel.videoUrl,
+        permalink: reel.permalink,
+        caption: reel.caption || '',
+        preview: '',
+        used: false,
+        ready: false,
+        status: 'queued',
+        batch: batch.id,
+        jobId: job?.id || null,
+        hook: ''
+      };
+
+      const existing = state.clips.find(
+        c => c.id === clip.id
       );
 
-    toast(
-      '10 Reels selected'
-    );
+      if (existing) {
+        Object.assign(existing, clip);
+      } else {
+        state.clips.push(clip);
+      }
+    });
 
-    await loadData();
+    save();
+
+    toast('10 Reels selected.');
+
+    render();
 
     window.scrollTo({
       top: document.body.scrollHeight,
@@ -1047,17 +702,14 @@ async function runRandom() {
     });
 
   } catch (error) {
-
     toast(error.message);
   }
 }
 
 function makeHook() {
-  const style =
-    state.settings.style;
+  const style = state.settings.style;
 
   const hooks = {
-
     Relatable: [
       'POV: you thought this was going to go differently',
       'That moment when you realize you messed up',
@@ -1093,33 +745,24 @@ function makeHook() {
       'Every group has a person like this',
       'POV: you are the one who always makes it worse'
     ]
-
   };
 
-  const list =
-    hooks[style] ||
-    hooks.Relatable;
+  const list = hooks[style] || hooks.Relatable;
 
-  return list[
-    Math.floor(
-      Math.random() * list.length
-    )
-  ];
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 function makeCaption() {
-  return (
-    'One of those moments that starts normally ' +
-    'and somehow turns into the only part everyone remembers.\n\n' +
-    'Remixed for Clipper.'
-  );
+  return `
+One of those moments that starts normally
+and somehow turns into the only part everyone remembers.
+
+Remixed for Clipper.
+`.trim();
 }
 
 function remix(id) {
-  const clip =
-    state.clips.find(
-      c => c.id === id
-    );
+  const clip = state.clips.find(c => c.id === id);
 
   if (!clip) return;
 
@@ -1129,14 +772,13 @@ function remix(id) {
   save();
   render();
 
-  toast('New hook generated');
+  toast('Remixed');
 }
 
 async function renderJob(jobId) {
-  const clip =
-    state.clips.find(
-      c => c.jobId === jobId
-    );
+  const clip = state.clips.find(
+    c => c.jobId === jobId
+  );
 
   if (!clip) {
     toast('Clip not found');
@@ -1144,129 +786,109 @@ async function renderJob(jobId) {
   }
 
   try {
+    toast('Rendering video…');
 
-    clip.status = 'rendering';
-    render();
-
-    toast(
-      'Rendering video…'
+    const result = await api(
+      `/api/jobs/${jobId}/render`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          hook: clip.hook || makeHook(),
+          caption: clip.caption || makeCaption()
+        })
+      }
     );
 
-    const result =
-      await api(
-        `/api/jobs/${jobId}/render`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            hook:
-              clip.hook ||
-              makeHook(),
-
-            caption:
-              clip.caption ||
-              makeCaption()
-          })
-        }
-      );
-
-    clip.hook =
-      result.hook;
-
-    clip.caption =
-      result.caption;
-
-    clip.status =
-      result.status;
-
-    clip.ready =
-      result.status === 'ready';
-
-    clip.outputUrl =
-      result.outputUrl ||
-      null;
-
-    clip.error =
-      result.error ||
-      null;
+    clip.hook = result.hook;
+    clip.caption = result.caption;
+    clip.status = result.status;
+    clip.ready = result.status === 'ready';
+    clip.outputUrl = result.outputUrl || null;
 
     save();
     render();
 
-    if (
-      result.status === 'ready'
-    ) {
-      toast(
-        'Video ready 🎉'
-      );
+    if (result.status === 'ready') {
+      toast('Video ready 🎉');
     }
 
   } catch (error) {
-
     clip.status = 'error';
-    clip.error =
-      error.message;
-
     save();
-    render();
 
-    toast(
-      `Render failed: ${error.message}`
-    );
+    toast(`Render failed: ${error.message}`);
+    render();
   }
 }
 
+function importInput() {
+  const input = document.createElement('input');
+
+  input.type = 'file';
+  input.accept = 'video/*';
+  input.multiple = true;
+
+  input.onchange = () => {
+    handleFiles([...input.files]);
+  };
+
+  input.click();
+}
+
+async function handleFiles(files) {
+  for (const file of files) {
+    const url = URL.createObjectURL(file);
+
+    state.clips.push({
+      id: uid(),
+      name: file.name.replace(/\.[^.]+$/, ''),
+      source: 'Photos / Files',
+      preview: url,
+      used: false,
+      ready: false,
+      status: 'raw',
+      remote: false,
+      fileName: file.name
+    });
+  }
+
+  save();
+
+  toast(
+    `${files.length} clip${files.length > 1 ? 's' : ''} imported`
+  );
+
+  render();
+}
+
 function copy(id) {
-  const clip =
-    state.clips.find(
-      c => c.id === id
-    );
+  const clip = state.clips.find(c => c.id === id);
 
   if (!clip?.caption) return;
 
   navigator.clipboard
     ?.writeText(clip.caption)
-    .then(() =>
-      toast('Caption copied')
-    );
+    .then(() => toast('Caption copied'));
 }
 
-document.addEventListener(
-  'click',
-  event => {
+document.addEventListener('click', event => {
+  const remixButton = event.target.closest('[data-remix]');
 
-    const remixButton =
-      event.target.closest(
-        '[data-remix]'
-      );
-
-    if (remixButton) {
-      remix(
-        remixButton.dataset.remix
-      );
-    }
-
-    const copyButton =
-      event.target.closest(
-        '[data-copy]'
-      );
-
-    if (copyButton) {
-      copy(
-        copyButton.dataset.copy
-      );
-    }
-
-    const renderButton =
-      event.target.closest(
-        '[data-render]'
-      );
-
-    if (renderButton) {
-      renderJob(
-        renderButton.dataset.render
-      );
-    }
+  if (remixButton) {
+    remix(remixButton.dataset.remix);
   }
-);
+
+  const copyButton = event.target.closest('[data-copy]');
+
+  if (copyButton) {
+    copy(copyButton.dataset.copy);
+  }
+
+  const renderButton = event.target.closest('[data-render]');
+
+  if (renderButton) {
+    renderJob(renderButton.dataset.render);
+  }
+});
 
 app();
