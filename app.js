@@ -1,781 +1,723 @@
 const API = 'https://clipper-backend-z71i.onrender.com';
-const KEY = 'clipper-state-v4';
 
-const state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
+const STORAGE_KEY = 'clipper-state-v5';
+
+const DEFAULT_STATE = {
   accounts: [],
-  clips: [],
+  reels: [],
   batches: [],
   settings: {
-    style: 'Relatable',
-    position: 'Top',
-    font: 'Bold'
+    selectedAccountId: null
   },
   tab: 'home'
 };
 
-let busy = false;
+let state = loadLocalState();
 
-function saveState() {
-  localStorage.setItem(KEY, JSON.stringify(state));
+const app = document.getElementById('app');
+
+
+/* =========================================================
+   LOCAL STATE
+========================================================= */
+
+function loadLocalState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+
+    if (!saved) {
+      return structuredClone(DEFAULT_STATE);
+    }
+
+    const parsed = JSON.parse(saved);
+
+    return {
+      ...structuredClone(DEFAULT_STATE),
+      ...parsed,
+      accounts: Array.isArray(parsed.accounts)
+        ? parsed.accounts
+        : [],
+      reels: Array.isArray(parsed.reels)
+        ? parsed.reels
+        : [],
+      batches: Array.isArray(parsed.batches)
+        ? parsed.batches
+        : [],
+      settings: {
+        ...DEFAULT_STATE.settings,
+        ...(parsed.settings || {})
+      }
+    };
+
+  } catch (error) {
+    console.error('Local state error:', error);
+    return structuredClone(DEFAULT_STATE);
+  }
 }
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+
+function saveLocalState() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(state)
+    );
+  } catch (error) {
+    console.error(
+      'Could not save local state:',
+      error
+    );
+  }
 }
 
-async function api(path, options = {}) {
-  const response = await fetch(API + path, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    },
-    ...options
-  });
 
-  let data = null;
+/* =========================================================
+   API
+========================================================= */
+
+async function api(
+  endpoint,
+  options = {}
+) {
+  const response = await fetch(
+    `${API}${endpoint}`,
+    {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    }
+  );
+
+  let data = {};
 
   try {
     data = await response.json();
-  } catch {
+  } catch (_) {
     data = {};
   }
 
   if (!response.ok) {
     throw new Error(
       data.error ||
-      `Backend error ${response.status}`
+      `Request failed (${response.status})`
     );
   }
 
   return data;
 }
 
+
+/* =========================================================
+   INITIAL LOAD
+========================================================= */
+
 async function loadData() {
+  showLoading();
+
   try {
+
     const [
-      accounts,
-      reels,
-      batches
+      accountsResponse,
+      reelsResponse,
+      batchesResponse
     ] = await Promise.all([
+
       api('/api/accounts'),
-      api('/api/reels'),
+
+      api('/api/reels?limit=500'),
+
       api('/api/batches')
+
     ]);
 
-    state.accounts = accounts || [];
-    state.clips = reels || [];
-    state.batches = batches || [];
 
-    saveState();
+    /*
+     * Backend returns:
+     *
+     * { accounts: [...] }
+     * { reels: [...] }
+     * { batches: [...] }
+     *
+     * We explicitly extract the arrays.
+     */
+
+    state.accounts =
+      Array.isArray(
+        accountsResponse.accounts
+      )
+        ? accountsResponse.accounts
+        : [];
+
+
+    state.reels =
+      Array.isArray(
+        reelsResponse.reels
+      )
+        ? reelsResponse.reels
+        : [];
+
+
+    state.batches =
+      Array.isArray(
+        batchesResponse.batches
+      )
+        ? batchesResponse.batches
+        : [];
+
+
+    /*
+     * If there is no selected account,
+     * automatically select the first one.
+     */
+
+    if (
+      !state.settings.selectedAccountId &&
+      state.accounts.length
+    ) {
+
+      state.settings.selectedAccountId =
+        state.accounts[0].id;
+
+    }
+
+
+    /*
+     * If selected account no longer exists,
+     * select the first available account.
+     */
+
+    if (
+      state.settings.selectedAccountId &&
+      !state.accounts.some(
+        account =>
+          String(account.id) ===
+          String(
+            state.settings.selectedAccountId
+          )
+      )
+    ) {
+
+      state.settings.selectedAccountId =
+        state.accounts.length
+          ? state.accounts[0].id
+          : null;
+
+    }
+
+
+    saveLocalState();
+
+    render();
+
   } catch (error) {
-    console.error('Load data failed:', error);
+
+    console.error(
+      'Load data failed:',
+      error
+    );
+
+    showError(
+      `Nepodarilo sa načítať Clipper: ${error.message}`
+    );
   }
 }
 
-function appRoot() {
-  return document.getElementById('app');
+
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
+
+function escapeHtml(value) {
+
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
 }
 
-function accountName(accountId) {
-  const account = state.accounts.find(
-    item => item.id === accountId
+
+function getSelectedAccount() {
+
+  return state.accounts.find(
+    account =>
+      String(account.id) ===
+      String(
+        state.settings.selectedAccountId
+      )
+  ) || null;
+
+}
+
+
+function getAccountReels(accountId) {
+
+  return state.reels.filter(
+    reel =>
+      String(reel.accountId) ===
+      String(accountId)
   );
 
-  return account
-    ? '@' + account.username
-    : 'Unknown account';
-}
-
-function categoryLabel(category) {
-  const labels = {
-    meme: '😂 Meme',
-    movie_tv: '🎬 Movie / TV',
-    music: '🎵 Music'
-  };
-
-  return labels[category] || category;
-}
-
-function categoryIcon(category) {
-  const icons = {
-    meme: '😂',
-    movie_tv: '🎬',
-    music: '🎵'
-  };
-
-  return icons[category] || '📹';
-}
-
-function showError(message) {
-  alert(message);
-}
-
-function showSuccess(message) {
-  alert(message);
 }
 
 
-/* =========================
-   HOME
-========================= */
+function formatDate(value) {
 
-function home(v) {
-  const totalClips = state.clips.length;
-  const totalAccounts = state.accounts.length;
+  if (!value) {
+    return 'Unknown date';
+  }
 
-  const latestBatch =
-    state.batches.length
-      ? state.batches[0]
-      : null;
+  const date = new Date(value);
 
-  v.innerHTML = `
-    <div class="page">
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown date';
+  }
 
-      <div class="topbar">
-        <div>
-          <div class="brand">Clipper</div>
-          <div class="muted">
-            ${totalClips} clips · ${totalAccounts} sources
-          </div>
-        </div>
+  return date.toLocaleDateString(
+    'sk-SK',
+    {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }
+  );
 
-        <button
-          class="icon-button"
-          id="openSettings"
-          title="Settings"
-        >
-          ⚙
-        </button>
-      </div>
-
-      <section class="hero-card">
-        <div class="eyebrow">
-          CREATOR WORKFLOW
-        </div>
-
-        <h1>
-          Find the next Reel worth remixing.
-        </h1>
-
-        <p>
-          Pull fresh inspiration, analyze the actual video,
-          choose a hook and render it.
-        </p>
-
-        <button
-          class="primary large"
-          id="random10"
-          ${busy ? 'disabled' : ''}
-        >
-          🎲 RANDOM 10
-        </button>
-      </section>
+}
 
 
-      <section class="section">
+function getReelDate(reel) {
 
-        <div class="section-head">
-          <div>
-            <h2>Inspiration accounts</h2>
-            <p>
-              Instagram accounts used for Reel inspiration.
-            </p>
-          </div>
+  const values = [
+    reel.publishedAt,
+    reel.takenAt,
+    reel.timestamp,
+    reel.createdAt,
+    reel.date
+  ];
 
-          <button
-            class="secondary"
-            id="addAccount"
-          >
-            + Add
-          </button>
-        </div>
+  for (const value of values) {
 
-        <div class="accounts">
-          ${
-            state.accounts.length
-              ? state.accounts.map(account => `
-                <div class="account-card">
+    if (!value) {
+      continue;
+    }
 
-                  <div class="account-icon">
-                    ${categoryIcon(account.category)}
-                  </div>
+    const date =
+      new Date(value);
 
-                  <div class="account-info">
-                    <strong>
-                      @${escapeHtml(account.username)}
-                    </strong>
+    if (
+      !Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return date.getTime();
+    }
 
-                    <span>
-                      ${categoryLabel(account.category)}
-                    </span>
+  }
 
-                    ${
-                      account.lastSync
-                        ? `<small>
-                            Last sync:
-                            ${new Date(account.lastSync).toLocaleString()}
-                          </small>`
-                        : ''
-                    }
-                  </div>
+  return null;
+}
 
-                  <button
-                    class="secondary small sync-one"
-                    data-id="${account.id}"
-                  >
-                    Sync
-                  </button>
 
-                </div>
-              `).join('')
-              : `
-                <div class="empty-card">
-                  <div class="empty-icon">📡</div>
-                  <strong>No inspiration accounts yet.</strong>
-                  <p>
-                    Add an Instagram account to start collecting Reels.
-                  </p>
-                </div>
-              `
-          }
-        </div>
+function sortOldestFirst(reels) {
+
+  return [...reels].sort(
+    (a, b) => {
+
+      const dateA =
+        getReelDate(a);
+
+      const dateB =
+        getReelDate(b);
+
+      if (
+        dateA === null &&
+        dateB === null
+      ) {
+        return 0;
+      }
+
+      if (dateA === null) {
+        return 1;
+      }
+
+      if (dateB === null) {
+        return -1;
+      }
+
+      return dateA - dateB;
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   RENDER ROOT
+========================================================= */
+
+function render() {
+
+  if (!app) {
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="clipper-app">
+
+      ${renderHeader()}
+
+      <main class="clipper-main">
 
         ${
-          state.accounts.length
-            ? `
-              <button
-                class="secondary full"
-                id="syncAll"
-              >
-                🔄 Sync all Instagram accounts
-              </button>
-            `
+          state.tab === 'home'
+            ? renderHome()
             : ''
         }
 
-      </section>
+        ${
+          state.tab === 'library'
+            ? renderLibrary()
+            : ''
+        }
 
+        ${
+          state.tab === 'settings'
+            ? renderSettings()
+            : ''
+        }
+
+      </main>
+
+      ${renderBottomNav()}
+
+    </div>
+  `;
+
+  attachEvents();
+
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+function renderHeader() {
+
+  const account =
+    getSelectedAccount();
+
+  return `
+    <header class="clipper-header">
+
+      <div>
+
+        <div class="clipper-logo">
+          CLIPPER
+        </div>
+
+        <div class="clipper-subtitle">
+          Reel remix studio
+        </div>
+
+      </div>
 
       ${
-        latestBatch
+        account
           ? `
-            <section class="section">
-
-              <div class="section-head">
-                <div>
-                  <h2>Latest batch</h2>
-                  <p>
-                    ${latestBatch.reelIds?.length || 0} Reels
-                  </p>
-                </div>
-              </div>
-
-              <div id="latestBatch"></div>
-
-            </section>
+            <button
+              class="account-pill"
+              data-action="select-account"
+            >
+              <span class="account-dot"></span>
+              @${escapeHtml(account.username)}
+            </button>
           `
           : ''
       }
 
-    </div>
-
-    <nav class="bottom-nav">
-      <button
-        class="${state.tab === 'home' ? 'active' : ''}"
-        data-tab="home"
-      >
-        <span>⌂</span>
-        Home
-      </button>
-
-      <button
-        class="${state.tab === 'library' ? 'active' : ''}"
-        data-tab="library"
-      >
-        <span>▣</span>
-        Library
-      </button>
-
-      <button
-        class="${state.tab === 'settings' ? 'active' : ''}"
-        data-tab="settings"
-      >
-        <span>⚙</span>
-        Settings
-      </button>
-    </nav>
+    </header>
   `;
 
-  document
-    .getElementById('openSettings')
-    ?.addEventListener(
-      'click',
-      () => {
-        state.tab = 'settings';
-        saveState();
-        render();
-      }
-    );
+}
 
-  document
-    .getElementById('random10')
-    ?.addEventListener(
-      'click',
-      runRandom
-    );
 
-  document
-    .getElementById('addAccount')
-    ?.addEventListener(
-      'click',
-      addAccountModal
-    );
+/* =========================================================
+   HOME
+========================================================= */
 
-  document
-    .getElementById('syncAll')
-    ?.addEventListener(
-      'click',
-      syncAll
-    );
+function renderHome() {
 
-  document
-    .querySelectorAll('.sync-one')
-    .forEach(button => {
-      button.addEventListener(
-        'click',
-        () => syncInstagramAccount(
-          button.dataset.id
-        )
-      );
-    });
+  const account =
+    getSelectedAccount();
 
-  document
-    .querySelectorAll('[data-tab]')
-    .forEach(button => {
-      button.addEventListener(
-        'click',
-        () => {
-          state.tab =
-            button.dataset.tab;
 
-          saveState();
-          render();
-        }
-      );
-    });
+  if (!account) {
 
-  if (latestBatch) {
-    renderLatestBatch(
-      latestBatch.id
-    );
+    return `
+      <section class="empty-state">
+
+        <div class="empty-icon">
+          ✦
+        </div>
+
+        <h2>Pridaj Instagram účet</h2>
+
+        <p>
+          Clipper potrebuje aspoň jeden účet,
+          z ktorého bude načítavať Reels.
+        </p>
+
+        <button
+          class="primary-button"
+          data-action="add-account"
+        >
+          + Add Instagram
+        </button>
+
+      </section>
+    `;
+
   }
-}
 
 
-/* =========================
-   ACCOUNT MODAL
-========================= */
+  const reels =
+    getAccountReels(
+      account.id
+    );
 
-function addAccountModal() {
-  const modal = document.createElement('div');
 
-  modal.className = 'modal-backdrop';
+  const unused =
+    reels.filter(
+      reel => !reel.used
+    );
 
-  modal.innerHTML = `
-    <div class="modal">
 
-      <div class="modal-head">
-        <h2>Add inspiration account</h2>
+  const oldest =
+    sortOldestFirst(
+      unused
+    ).slice(0, 10);
 
-        <button
-          class="close-modal"
-        >
-          ×
-        </button>
+
+  return `
+
+    <section class="hero-section">
+
+      <div class="eyebrow">
+        ${escapeHtml(
+          categoryLabel(
+            account.category
+          )
+        )}
       </div>
 
-      <label>
-        Instagram username
-      </label>
+      <h1>
+        ${escapeHtml(account.name || account.username)}
+      </h1>
 
-      <input
-        id="accountUsername"
-        placeholder="@username"
-        autocomplete="off"
-      />
+      <p class="hero-description">
+        Vyber starý nepoužitý Reel,
+        nech ho analyzovať AI a vytvor finálnu verziu.
+      </p>
 
-      <label>
-        Account type
-      </label>
-
-      <select id="accountCategory">
-        <option value="movie_tv">
-          🎬 Movie / TV
-        </option>
-
-        <option value="music">
-          🎵 Music
-        </option>
-
-        <option value="meme">
-          😂 Meme
-        </option>
-      </select>
-
-      <div class="modal-actions">
+      <div class="hero-actions">
 
         <button
-          class="secondary close-modal"
+          class="primary-button large"
+          data-action="sync"
+          data-account-id="${account.id}"
         >
-          Cancel
+          ↻ Sync Instagram
         </button>
 
         <button
-          class="primary"
-          id="saveAccount"
+          class="secondary-button large"
+          data-action="random"
+          data-account-id="${account.id}"
         >
-          Add account
+          🎲 Oldest 10
         </button>
 
       </div>
 
-    </div>
+    </section>
+
+
+    <section class="stats-grid">
+
+      <div class="stat-card">
+        <strong>${reels.length}</strong>
+        <span>Total Reels</span>
+      </div>
+
+      <div class="stat-card">
+        <strong>${unused.length}</strong>
+        <span>Unused</span>
+      </div>
+
+      <div class="stat-card">
+        <strong>${
+          reels.filter(
+            reel => reel.analyzed
+          ).length
+        }</strong>
+        <span>Analyzed</span>
+      </div>
+
+    </section>
+
+
+    <section class="section">
+
+      <div class="section-heading">
+
+        <div>
+          <div class="eyebrow">
+            YOUR QUEUE
+          </div>
+
+          <h2>
+            Oldest unused Reels
+          </h2>
+        </div>
+
+        <button
+          class="text-button"
+          data-action="library"
+        >
+          View all
+        </button>
+
+      </div>
+
+
+      ${
+        oldest.length
+          ? `
+            <div class="reel-grid">
+              ${oldest
+                .map(
+                  reelCard
+                )
+                .join('')}
+            </div>
+          `
+          : `
+            <div class="empty-card">
+              <strong>
+                Žiadne nepoužité Reels
+              </strong>
+
+              <p>
+                Spusť Sync Instagram a načítaj ďalšie.
+              </p>
+            </div>
+          `
+      }
+
+    </section>
+
   `;
 
-  document.body.appendChild(modal);
-
-  modal
-    .querySelectorAll('.close-modal')
-    .forEach(button => {
-      button.addEventListener(
-        'click',
-        () => modal.remove()
-      );
-    });
-
-  modal
-    .querySelector('#saveAccount')
-    .addEventListener(
-      'click',
-      async () => {
-
-        const username =
-          modal
-            .querySelector('#accountUsername')
-            .value
-            .trim();
-
-        const category =
-          modal
-            .querySelector('#accountCategory')
-            .value;
-
-        if (!username) {
-          alert(
-            'Please enter an Instagram username.'
-          );
-          return;
-        }
-
-        const button =
-          modal.querySelector(
-            '#saveAccount'
-          );
-
-        button.disabled = true;
-        button.textContent = 'Adding...';
-
-        try {
-          const account =
-            await api(
-              '/api/accounts',
-              {
-                method: 'POST',
-                body: JSON.stringify({
-                  username,
-                  category
-                })
-              }
-            );
-
-          state.accounts =
-            state.accounts.filter(
-              item =>
-                item.id !== account.id
-            );
-
-          state.accounts.push(account);
-
-          saveState();
-
-          modal.remove();
-
-          render();
-
-        } catch (error) {
-          button.disabled = false;
-          button.textContent = 'Add account';
-
-          showError(
-            error.message
-          );
-        }
-      }
-    );
 }
 
 
-/* =========================
-   SYNC
-========================= */
+/* =========================================================
+   CATEGORY
+========================================================= */
 
-async function syncInstagramAccount(
-  accountId
+function categoryLabel(
+  category
 ) {
-  if (busy) return;
+
+  const labels = {
+    movie_tv: 'MOVIE / TV',
+    music: 'MUSIC',
+    meme: 'MEME'
+  };
+
+  return (
+    labels[category] ||
+    String(category || 'CONTENT')
+      .toUpperCase()
+  );
+
+}
+
+
+/* =========================================================
+   REEL CARD
+========================================================= */
+
+function reelCard(
+  reel
+) {
 
   const account =
     state.accounts.find(
       item =>
-        item.id === accountId
+        String(item.id) ===
+        String(reel.accountId)
     );
 
-  if (!account) return;
 
-  busy = true;
-  render();
-
-  try {
-    await api(
-      `/api/accounts/${accountId}/sync`,
-      {
-        method: 'POST'
-      }
-    );
-
-    await loadData();
-
-    showSuccess(
-      `Instagram sync complete for @${account.username}.`
-    );
-
-  } catch (error) {
-    showError(
-      `Sync failed:\n\n${error.message}`
-    );
-
-  } finally {
-    busy = false;
-    render();
-  }
-}
-
-async function syncAll() {
-  if (busy) return;
-
-  if (!state.accounts.length) {
-    showError(
-      'Add an Instagram account first.'
-    );
-    return;
-  }
-
-  busy = true;
-  render();
-
-  let success = 0;
-  let failed = 0;
-
-  try {
-    for (
-      const account of state.accounts
-    ) {
-      try {
-        await api(
-          `/api/accounts/${account.id}/sync`,
-          {
-            method: 'POST'
-          }
-        );
-
-        success++;
-
-      } catch (error) {
-        console.error(
-          `Sync failed for ${account.username}`,
-          error
-        );
-
-        failed++;
-      }
-    }
-
-    await loadData();
-
-    alert(
-      `Sync complete.\n\nSuccessful: ${success}\nFailed: ${failed}`
-    );
-
-  } finally {
-    busy = false;
-    render();
-  }
-}
-
-
-/* =========================
-   RANDOM BATCH
-========================= */
-
-async function runRandom() {
-  if (busy) return;
-
-  if (!state.clips.length) {
-    showError(
-      'There are no Reels yet. Add an Instagram account and sync it first.'
-    );
-    return;
-  }
-
-  busy = true;
-  render();
-
-  try {
-    const result =
-      await api(
-        '/api/batch/random',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            count: 10
-          })
-        }
-      );
-
-    if (
-      result.batch
-    ) {
-      state.batches.unshift(
-        result.batch
-      );
-    }
-
-    await loadData();
-
-    state.tab = 'home';
-
-  } catch (error) {
-    showError(
-      `Could not create batch:\n\n${error.message}`
-    );
-
-  } finally {
-    busy = false;
-    saveState();
-    render();
-  }
-}
-
-
-/* =========================
-   BATCH
-========================= */
-
-async function renderLatestBatch(
-  batchId
-) {
-  const container =
-    document.getElementById(
-      'latestBatch'
-    );
-
-  if (!container) return;
-
-  container.innerHTML = `
-    <div class="loading-card">
-      Loading Reels...
-    </div>
-  `;
-
-  try {
-    const data =
-      await api(
-        `/api/batches/${batchId}`
-      );
-
-    container.innerHTML =
-      data.reels
-        .map(reel =>
-          reelCard(reel)
-        )
-        .join('');
-
-    attachReelEvents(
-      container
-    );
-
-  } catch (error) {
-    container.innerHTML = `
-      <div class="error-card">
-        ${escapeHtml(error.message)}
-      </div>
-    `;
-  }
-}
-
-
-/* =========================
-   REEL CARD
-========================= */
-
-function reelCard(reel) {
   const analysis =
-    reel.aiAnalysis || null;
+    reel.analysis || null;
+
+
+  const hooks =
+    analysis &&
+    Array.isArray(
+      analysis.hooks
+    )
+      ? analysis.hooks
+      : [];
+
 
   const selectedHook =
     reel.selectedHook ||
+    hooks[0] ||
     '';
 
+
   return `
+
     <article
       class="reel-card"
       data-reel-id="${reel.id}"
     >
 
-      <div class="reel-media">
+      <div class="reel-preview">
 
         ${
-          reel.previewUrl
+          reel.thumbnailUrl
             ? `
               <img
-                src="${escapeHtml(reel.previewUrl)}"
+                src="${escapeHtml(
+                  reel.thumbnailUrl
+                )}"
                 alt=""
                 loading="lazy"
               >
             `
             : `
-              <div class="media-placeholder">
-                📹
+              <div class="thumbnail-placeholder">
+                REEL
               </div>
             `
         }
 
         ${
-          reel.permalink
+          reel.used
             ? `
-              <a
-                href="${escapeHtml(reel.permalink)}"
-                target="_blank"
-                rel="noopener"
-                class="instagram-link"
-              >
-                Instagram ↗
-              </a>
+              <div class="status-badge used">
+                USED
+              </div>
             `
             : ''
         }
@@ -786,146 +728,21 @@ function reelCard(reel) {
       <div class="reel-body">
 
         <div class="reel-meta">
+
           <span>
-            ${escapeHtml(
-              accountName(reel.accountId)
+            ${formatDate(
+              reel.publishedAt
             )}
           </span>
 
           ${
-            reel.used
-              ? `<span class="used-badge">USED</span>`
-              : ''
-          }
-        </div>
-
-
-        ${
-          reel.caption
-            ? `
-              <div class="source-caption">
-                ${escapeHtml(
-                  reel.caption
-                )}
-              </div>
-            `
-            : ''
-        }
-
-
-        ${
-          analysis
-            ? `
-              <div class="ai-result">
-
-                <div class="ai-title">
-                  🤖 AI Analysis
-                </div>
-
-                ${
-                  analysis.summary
-                    ? `
-                      <div class="ai-summary">
-                        <strong>What happens:</strong>
-                        ${escapeHtml(
-                          analysis.summary
-                        )}
-                      </div>
-                    `
-                    : ''
-                }
-
-                ${
-                  analysis.hooks?.length
-                    ? `
-                      <div class="hooks-title">
-                        Choose a hook
-                      </div>
-
-                      <div class="hooks-list">
-
-                        ${analysis.hooks
-                          .map(
-                            (hook, index) => `
-                              <button
-                                class="hook-option ${
-                                  selectedHook === hook
-                                    ? 'selected'
-                                    : ''
-                                }"
-                                data-hook="${escapeHtml(hook)}"
-                              >
-                                <span>
-                                  ${index + 1}.
-                                </span>
-
-                                <strong>
-                                  ${escapeHtml(hook)}
-                                </strong>
-                              </button>
-                            `
-                          )
-                          .join('')}
-
-                      </div>
-                    `
-                    : ''
-                }
-
-
-                ${
-                  analysis.caption
-                    ? `
-                      <div class="ai-caption">
-                        <div class="hooks-title">
-                          Caption
-                        </div>
-
-                        <div class="caption-box">
-                          ${escapeHtml(
-                            analysis.caption
-                          )}
-                        </div>
-
-                        <button
-                          class="secondary small copy-ai-caption"
-                        >
-                          Copy caption
-                        </button>
-                      </div>
-                    `
-                    : ''
-                }
-
-              </div>
-            `
-            : ''
-        }
-
-
-        <div class="reel-actions">
-
-          <button
-            class="primary analyze-reel"
-            data-id="${reel.id}"
-            ${busy ? 'disabled' : ''}
-          >
-            🤖 ${
-              analysis
-                ? 'Analyze again'
-                : 'Analyze Reel'
-            }
-          </button>
-
-          ${
-            selectedHook
+            account
               ? `
-                <button
-                  class="secondary render-reel"
-                  data-id="${reel.id}"
-                >
-                  🎬 Render
-                </button>
+                <span>
+                  @${escapeHtml(
+                    account.username
+                  )}
+                </span>
               `
               : ''
           }
@@ -934,982 +751,2098 @@ function reelCard(reel) {
 
 
         ${
-          reel.renderedUrl
+          reel.caption
             ? `
-              <a
-                href="${escapeHtml(
-                  reel.renderedUrl
-                )}"
-                target="_blank"
-                rel="noopener"
-                class="rendered-link"
-              >
-                ▶ Open rendered Reel
-              </a>
+              <p class="source-caption">
+                ${escapeHtml(
+                  reel.caption
+                ).slice(0, 180)}
+              </p>
             `
+            : ''
+        }
+
+
+        <div class="reel-actions">
+
+          <button
+            class="secondary-button"
+            data-action="analyze"
+            data-reel-id="${reel.id}"
+          >
+            ${
+              reel.analyzed
+                ? '↻ Re-analyze'
+                : '🤖 Analyze Reel'
+            }
+          </button>
+
+        </div>
+
+
+        ${
+          analysis
+            ? renderAnalysis(
+                reel,
+                hooks,
+                selectedHook
+              )
             : ''
         }
 
       </div>
 
     </article>
+
   `;
+
 }
 
 
-/* =========================
-   REEL EVENTS
-========================= */
-
-function attachReelEvents(
-  container
-) {
-  container
-    .querySelectorAll('.analyze-reel')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          analyzeReel(
-            button.dataset.id
-          )
-      );
-    });
-
-
-  container
-    .querySelectorAll('.hook-option')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () => {
-
-          const card =
-            button.closest(
-              '.reel-card'
-            );
-
-          const reelId =
-            card.dataset.reelId;
-
-          selectHook(
-            reelId,
-            button.dataset.hook
-          );
-        }
-      );
-    });
-
-
-  container
-    .querySelectorAll('.copy-ai-caption')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        async () => {
-
-          const card =
-            button.closest(
-              '.reel-card'
-            );
-
-          const reel =
-            state.clips.find(
-              item =>
-                item.id ===
-                card.dataset.reelId
-            );
-
-          const caption =
-            reel?.aiAnalysis?.caption;
-
-          if (!caption) return;
-
-          try {
-            await navigator.clipboard.writeText(
-              caption
-            );
-
-            button.textContent =
-              'Copied ✓';
-
-            setTimeout(
-              () => {
-                button.textContent =
-                  'Copy caption';
-              },
-              1200
-            );
-
-          } catch {
-            alert(
-              caption
-            );
-          }
-        }
-      );
-    });
-
-
-  container
-    .querySelectorAll('.render-reel')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          renderReel(
-            button.dataset.id
-          )
-      );
-    });
-}
-
-
-/* =========================
+/* =========================================================
    AI ANALYSIS
-========================= */
+========================================================= */
 
-async function analyzeReel(
-  reelId
+function renderAnalysis(
+  reel,
+  hooks,
+  selectedHook
 ) {
-  if (busy) return;
 
-  const reel =
-    state.clips.find(
-      item =>
-        item.id === reelId
+  return `
+
+    <div class="ai-panel">
+
+      <div class="ai-heading">
+        <span>✦</span>
+        AI ANALYSIS
+      </div>
+
+
+      ${
+        reel.analysis.summary
+          ? `
+            <div class="ai-summary">
+              <strong>Summary</strong>
+              <p>
+                ${escapeHtml(
+                  reel.analysis.summary
+                )}
+              </p>
+            </div>
+          `
+          : ''
+      }
+
+
+      ${
+        hooks.length
+          ? `
+            <div class="hooks-section">
+
+              <strong>
+                Choose your hook
+              </strong>
+
+              <div class="hook-list">
+
+                ${hooks
+                  .map(
+                    (hook, index) => {
+
+                      if (!hook) {
+                        return '';
+                      }
+
+                      const selected =
+                        hook ===
+                        selectedHook;
+
+                      return `
+
+                        <button
+                          class="hook-option ${
+                            selected
+                              ? 'selected'
+                              : ''
+                          }"
+                          data-action="select-hook"
+                          data-reel-id="${reel.id}"
+                          data-hook="${escapeHtml(
+                            hook
+                          )}"
+                        >
+
+                          <span class="hook-number">
+                            ${index + 1}
+                          </span>
+
+                          <span>
+                            ${escapeHtml(
+                              hook
+                            )}
+                          </span>
+
+                          ${
+                            selected
+                              ? `
+                                <span class="hook-check">
+                                  ✓
+                                </span>
+                              `
+                              : ''
+                          }
+
+                        </button>
+
+                      `;
+
+                    }
+                  )
+                  .join('')}
+
+              </div>
+
+            </div>
+          `
+          : ''
+      }
+
+
+      ${
+        reel.aiCaption
+          ? `
+            <div class="caption-section">
+
+              <div class="caption-heading">
+                <strong>
+                  Caption
+                </strong>
+
+                <button
+                  class="small-button"
+                  data-action="copy-caption"
+                  data-caption="${escapeHtml(
+                    reel.aiCaption
+                  )}"
+                >
+                  Copy
+                </button>
+              </div>
+
+              <div class="caption-box">
+                ${escapeHtml(
+                  reel.aiCaption
+                )}
+              </div>
+
+            </div>
+          `
+          : ''
+      }
+
+
+      <button
+        class="render-button"
+        data-action="render"
+        data-reel-id="${reel.id}"
+      >
+        🎬 Render Reel
+      </button>
+
+
+      ${
+        reel.rendered
+          ? `
+            <div class="rendered-status">
+              ✓ Rendered
+            </div>
+          `
+          : ''
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   LIBRARY
+========================================================= */
+
+function renderLibrary() {
+
+  const account =
+    getSelectedAccount();
+
+
+  let reels =
+    account
+      ? getAccountReels(
+          account.id
+        )
+      : [...state.reels];
+
+
+  reels =
+    sortOldestFirst(
+      reels
     );
 
-  if (!reel) {
-    showError(
-      'Reel not found.'
+
+  return `
+
+    <section class="page-section">
+
+      <div class="page-title">
+
+        <div class="eyebrow">
+          LIBRARY
+        </div>
+
+        <h1>
+          Your Reels
+        </h1>
+
+        <p>
+          Najstaršie Reels sú hore.
+        </p>
+
+      </div>
+
+
+      <div class="library-toolbar">
+
+        <button
+          class="secondary-button"
+          data-action="sync"
+          data-account-id="${
+            account
+              ? account.id
+              : ''
+          }"
+        >
+          ↻ Sync
+        </button>
+
+        <button
+          class="secondary-button"
+          data-action="filter-unused"
+        >
+          Unused only
+        </button>
+
+      </div>
+
+
+      ${
+        reels.length
+          ? `
+            <div class="reel-grid">
+              ${reels
+                .map(
+                  reelCard
+                )
+                .join('')}
+            </div>
+          `
+          : `
+            <div class="empty-card">
+              Library is empty.
+            </div>
+          `
+      }
+
+    </section>
+
+  `;
+
+}
+
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+function renderSettings() {
+
+  const account =
+    getSelectedAccount();
+
+
+  return `
+
+    <section class="page-section">
+
+      <div class="page-title">
+
+        <div class="eyebrow">
+          SETTINGS
+        </div>
+
+        <h1>
+          Clipper
+        </h1>
+
+        <p>
+          Private Reel remix studio.
+        </p>
+
+      </div>
+
+
+      <div class="settings-card">
+
+        <div class="settings-heading">
+          Instagram Accounts
+        </div>
+
+
+        <div class="account-list">
+
+          ${
+            state.accounts.length
+              ? state.accounts
+                  .map(
+                    renderAccountRow
+                  )
+                  .join('')
+              : `
+                <div class="empty-inline">
+                  No accounts yet.
+                </div>
+              `
+          }
+
+        </div>
+
+
+        <button
+          class="primary-button"
+          data-action="add-account"
+        >
+          + Add Instagram account
+        </button>
+
+      </div>
+
+
+      <div class="settings-card">
+
+        <div class="settings-heading">
+          Backend
+        </div>
+
+        <p class="settings-url">
+          ${escapeHtml(API)}
+        </p>
+
+        <button
+          class="secondary-button"
+          data-action="test-backend"
+        >
+          Test connection
+        </button>
+
+      </div>
+
+
+      <div class="settings-card">
+
+        <div class="settings-heading">
+          Clipper version
+        </div>
+
+        <div class="version-number">
+          iPhone-ready V5
+        </div>
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+/* =========================================================
+   ACCOUNT ROW
+========================================================= */
+
+function renderAccountRow(
+  account
+) {
+
+  const selected =
+    String(
+      account.id
+    ) ===
+    String(
+      state.settings.selectedAccountId
     );
+
+
+  return `
+
+    <div
+      class="account-row ${
+        selected
+          ? 'selected'
+          : ''
+      }"
+    >
+
+      <button
+        class="account-select"
+        data-action="choose-account"
+        data-account-id="${account.id}"
+      >
+
+        <span class="account-avatar">
+          ${
+            categoryEmoji(
+              account.category
+            )
+          }
+        </span>
+
+        <span class="account-info">
+
+          <strong>
+            ${escapeHtml(
+              account.name ||
+              account.username
+            )}
+          </strong>
+
+          <small>
+            @${escapeHtml(
+              account.username
+            )}
+            ·
+            ${escapeHtml(
+              categoryLabel(
+                account.category
+              )
+            )}
+          </small>
+
+        </span>
+
+        ${
+          selected
+            ? `
+              <span class="selected-mark">
+                ✓
+              </span>
+            `
+            : ''
+        }
+
+      </button>
+
+
+      <button
+        class="delete-account"
+        data-action="delete-account"
+        data-account-id="${account.id}"
+      >
+        ×
+      </button>
+
+    </div>
+
+  `;
+
+}
+
+
+function categoryEmoji(
+  category
+) {
+
+  if (category === 'movie_tv') {
+    return '🎬';
+  }
+
+  if (category === 'music') {
+    return '🎵';
+  }
+
+  return '😂';
+
+}
+
+
+/* =========================================================
+   BOTTOM NAV
+========================================================= */
+
+function renderBottomNav() {
+
+  return `
+
+    <nav class="bottom-nav">
+
+      <button
+        class="nav-item ${
+          state.tab === 'home'
+            ? 'active'
+            : ''
+        }"
+        data-action="home"
+      >
+        <span>⌂</span>
+        <small>Home</small>
+      </button>
+
+
+      <button
+        class="nav-item ${
+          state.tab === 'library'
+            ? 'active'
+            : ''
+        }"
+        data-action="library"
+      >
+        <span>▦</span>
+        <small>Library</small>
+      </button>
+
+
+      <button
+        class="nav-item ${
+          state.tab === 'settings'
+            ? 'active'
+            : ''
+        }"
+        data-action="settings"
+      >
+        <span>⚙</span>
+        <small>Settings</small>
+      </button>
+
+    </nav>
+
+  `;
+
+}
+
+
+/* =========================================================
+   EVENTS
+========================================================= */
+
+function attachEvents() {
+
+  document
+    .querySelectorAll(
+      '[data-action]'
+    )
+    .forEach(
+      element => {
+
+        element.addEventListener(
+          'click',
+          () =>
+            handleAction(
+              element.dataset.action,
+              element
+            )
+        );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+async function handleAction(
+  action,
+  element
+) {
+
+  try {
+
+    switch (action) {
+
+      case 'home':
+
+        state.tab = 'home';
+
+        saveLocalState();
+
+        render();
+
+        break;
+
+
+      case 'library':
+
+        state.tab = 'library';
+
+        saveLocalState();
+
+        render();
+
+        break;
+
+
+      case 'settings':
+
+        state.tab = 'settings';
+
+        saveLocalState();
+
+        render();
+
+        break;
+
+
+      case 'select-account':
+
+        openAccountSelector();
+
+        break;
+
+
+      case 'choose-account':
+
+        chooseAccount(
+          element.dataset.accountId
+        );
+
+        break;
+
+
+      case 'add-account':
+
+        openAddAccountModal();
+
+        break;
+
+
+      case 'delete-account':
+
+        await deleteAccount(
+          element.dataset.accountId
+        );
+
+        break;
+
+
+      case 'sync':
+
+        await syncAccount(
+          element.dataset.accountId
+        );
+
+        break;
+
+
+      case 'random':
+
+        await loadOldestBatch(
+          element.dataset.accountId
+        );
+
+        break;
+
+
+      case 'analyze':
+
+        await analyzeReel(
+          element.dataset.reelId
+        );
+
+        break;
+
+
+      case 'select-hook':
+
+        selectHook(
+          element.dataset.reelId,
+          element.dataset.hook
+        );
+
+        break;
+
+
+      case 'copy-caption':
+
+        await copyText(
+          element.dataset.caption
+        );
+
+        break;
+
+
+      case 'render':
+
+        await renderReel(
+          element.dataset.reelId
+        );
+
+        break;
+
+
+      case 'test-backend':
+
+        await testBackend();
+
+        break;
+
+
+      case 'filter-unused':
+
+        filterUnused();
+
+        break;
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      'Action failed:',
+      error
+    );
+
+    showToast(
+      error.message ||
+      'Something went wrong.'
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   ACCOUNT
+========================================================= */
+
+function chooseAccount(
+  accountId
+) {
+
+  state.settings.selectedAccountId =
+    accountId;
+
+  state.tab = 'home';
+
+  saveLocalState();
+
+  render();
+
+}
+
+
+function openAccountSelector() {
+
+  if (!state.accounts.length) {
+    openAddAccountModal();
     return;
   }
 
-  busy = true;
 
-  const card =
-    document.querySelector(
-      `.reel-card[data-reel-id="${reelId}"]`
+  const buttons =
+    state.accounts
+      .map(
+        account => `
+
+          <button
+            class="modal-account"
+            data-modal-account="${account.id}"
+          >
+
+            <span>
+              ${categoryEmoji(
+                account.category
+              )}
+            </span>
+
+            <span>
+
+              <strong>
+                ${escapeHtml(
+                  account.name ||
+                  account.username
+                )}
+              </strong>
+
+              <small>
+                @${escapeHtml(
+                  account.username
+                )}
+              </small>
+
+            </span>
+
+          </button>
+
+        `
+      )
+      .join('');
+
+
+  showModal(`
+    <div class="modal-content">
+
+      <div class="modal-title">
+        Choose account
+      </div>
+
+      <div class="modal-account-list">
+        ${buttons}
+      </div>
+
+      <button
+        class="text-button"
+        data-modal-action="close"
+      >
+        Cancel
+      </button>
+
+    </div>
+  `);
+
+
+  document
+    .querySelectorAll(
+      '[data-modal-account]'
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          'click',
+          () => {
+
+            chooseAccount(
+              button.dataset.modalAccount
+            );
+
+            closeModal();
+
+          }
+        );
+
+      }
     );
 
-  if (card) {
-    const button =
-      card.querySelector(
-        '.analyze-reel'
-      );
+}
 
-    if (button) {
-      button.disabled = true;
-      button.textContent =
-        '🤖 Analyzing video...';
-    }
+
+function openAddAccountModal() {
+
+  showModal(`
+
+    <div class="modal-content">
+
+      <div class="modal-title">
+        Add Instagram account
+      </div>
+
+      <p class="modal-description">
+        Pridaj účet, z ktorého bude Clipper načítavať Reels.
+      </p>
+
+
+      <label>
+        Instagram username
+      </label>
+
+      <input
+        id="account-username"
+        class="modal-input"
+        type="text"
+        placeholder="@username"
+        autocomplete="off"
+      />
+
+
+      <label>
+        Name
+      </label>
+
+      <input
+        id="account-name"
+        class="modal-input"
+        type="text"
+        placeholder="Movie TV"
+      />
+
+
+      <label>
+        Category
+      </label>
+
+      <select
+        id="account-category"
+        class="modal-input"
+      >
+        <option value="movie_tv">
+          Movie / TV
+        </option>
+
+        <option value="music">
+          Music
+        </option>
+
+        <option value="meme">
+          Meme
+        </option>
+      </select>
+
+
+      <div class="modal-actions">
+
+        <button
+          class="secondary-button"
+          data-modal-action="close"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="primary-button"
+          data-modal-action="create-account"
+        >
+          Add account
+        </button>
+
+      </div>
+
+    </div>
+
+  `);
+
+
+  document
+    .querySelector(
+      '[data-modal-action="create-account"]'
+    )
+    .addEventListener(
+      'click',
+      createAccount
+    );
+
+}
+
+
+/* =========================================================
+   CREATE ACCOUNT
+========================================================= */
+
+async function createAccount() {
+
+  const username =
+    document
+      .getElementById(
+        'account-username'
+      )
+      .value
+      .trim();
+
+
+  const name =
+    document
+      .getElementById(
+        'account-name'
+      )
+      .value
+      .trim();
+
+
+  const category =
+    document
+      .getElementById(
+        'account-category'
+      )
+      .value;
+
+
+  if (!username) {
+
+    showToast(
+      'Zadaj Instagram username.'
+    );
+
+    return;
+
   }
 
+
+  const response =
+    await api(
+      '/api/accounts',
+      {
+        method: 'POST',
+
+        body:
+          JSON.stringify({
+            username,
+            name:
+              name ||
+              username,
+            category
+          })
+      }
+    );
+
+
+  const account =
+    response.account;
+
+
+  if (!account) {
+
+    throw new Error(
+      'Backend nevrátil účet.'
+    );
+
+  }
+
+
+  const existingIndex =
+    state.accounts.findIndex(
+      item =>
+        String(item.id) ===
+        String(account.id)
+    );
+
+
+  if (existingIndex >= 0) {
+
+    state.accounts[
+      existingIndex
+    ] = account;
+
+  } else {
+
+    state.accounts.push(
+      account
+    );
+
+  }
+
+
+  state.settings.selectedAccountId =
+    account.id;
+
+
+  state.tab = 'home';
+
+
+  saveLocalState();
+
+  closeModal();
+
+  render();
+
+  showToast(
+    'Instagram účet pridaný.'
+  );
+
+}
+
+
+/* =========================================================
+   DELETE ACCOUNT
+========================================================= */
+
+async function deleteAccount(
+  accountId
+) {
+
+  const account =
+    state.accounts.find(
+      item =>
+        String(item.id) ===
+        String(accountId)
+    );
+
+
+  if (!account) {
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Naozaj chceš odstrániť @${account.username}?`
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  await api(
+    `/api/accounts/${encodeURIComponent(
+      accountId
+    )}`,
+    {
+      method: 'DELETE'
+    }
+  );
+
+
+  state.accounts =
+    state.accounts.filter(
+      item =>
+        String(item.id) !==
+        String(accountId)
+    );
+
+
+  state.reels =
+    state.reels.filter(
+      reel =>
+        String(reel.accountId) !==
+        String(accountId)
+    );
+
+
+  if (
+    String(
+      state.settings.selectedAccountId
+    ) ===
+    String(accountId)
+  ) {
+
+    state.settings.selectedAccountId =
+      state.accounts.length
+        ? state.accounts[0].id
+        : null;
+
+  }
+
+
+  saveLocalState();
+
+  render();
+
+}
+
+
+/* =========================================================
+   SYNC
+========================================================= */
+
+async function syncAccount(
+  accountId
+) {
+
+  if (!accountId) {
+
+    const account =
+      getSelectedAccount();
+
+    accountId =
+      account
+        ? account.id
+        : null;
+
+  }
+
+
+  if (!accountId) {
+
+    showToast(
+      'Najprv vyber Instagram účet.'
+    );
+
+    return;
+
+  }
+
+
+  const button =
+    document.querySelector(
+      `[data-action="sync"][data-account-id="${accountId}"]`
+    );
+
+
+  if (button) {
+
+    button.disabled = true;
+
+    button.textContent =
+      '↻ Syncing...';
+
+  }
+
+
   try {
-    const result =
+
+    const response =
       await api(
-        `/api/reels/${reelId}/analyze`,
+        `/api/accounts/${encodeURIComponent(
+          accountId
+        )}/sync`,
         {
           method: 'POST'
         }
       );
 
-    reel.aiAnalysis =
-      result.analysis;
 
-    reel.selectedHook =
-      result.analysis?.hooks?.[0] || '';
-
-    saveState();
-
-    await refreshLatestBatch();
-
-  } catch (error) {
-    showError(
-      `AI analysis failed:\n\n${error.message}`
+    showToast(
+      `Sync hotový: ${response.added || 0} nových Reels.`
     );
 
-    await refreshLatestBatch();
+
+    await loadData();
 
   } finally {
-    busy = false;
+
+    if (button) {
+
+      button.disabled = false;
+
+    }
+
   }
+
 }
 
 
-/* =========================
+/* =========================================================
+   OLD REELS
+========================================================= */
+
+async function loadOldestBatch(
+  accountId
+) {
+
+  if (!accountId) {
+
+    const account =
+      getSelectedAccount();
+
+    accountId =
+      account
+        ? account.id
+        : null;
+
+  }
+
+
+  if (!accountId) {
+
+    showToast(
+      'Najprv vyber účet.'
+    );
+
+    return;
+
+  }
+
+
+  const response =
+    await api(
+      `/api/batch/random?accountId=${encodeURIComponent(
+        accountId
+      )}&limit=10`
+    );
+
+
+  const reels =
+    Array.isArray(
+      response.reels
+    )
+      ? response.reels
+      : [];
+
+
+  if (!reels.length) {
+
+    showToast(
+      'Nemáš žiadne ďalšie nepoužité Reels.'
+    );
+
+    return;
+
+  }
+
+
+  state.reels =
+    mergeReels(
+      state.reels,
+      reels
+    );
+
+
+  state.tab = 'home';
+
+  saveLocalState();
+
+  render();
+
+
+  setTimeout(
+    () => {
+
+      const first =
+        document.querySelector(
+          `.reel-card[data-reel-id="${reels[0].id}"]`
+        );
+
+      if (first) {
+
+        first.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+
+      }
+
+    },
+    100
+  );
+
+}
+
+
+/* =========================================================
+   MERGE REELS
+========================================================= */
+
+function mergeReels(
+  existing,
+  incoming
+) {
+
+  const map =
+    new Map();
+
+
+  existing.forEach(
+    reel =>
+      map.set(
+        String(reel.id),
+        reel
+      )
+  );
+
+
+  incoming.forEach(
+    reel =>
+      map.set(
+        String(reel.id),
+        {
+          ...(map.get(
+            String(reel.id)
+          ) || {}),
+          ...reel
+        }
+      )
+  );
+
+
+  return Array.from(
+    map.values()
+  );
+
+}
+
+
+/* =========================================================
+   ANALYZE
+========================================================= */
+
+async function analyzeReel(
+  reelId
+) {
+
+  const reel =
+    state.reels.find(
+      item =>
+        String(item.id) ===
+        String(reelId)
+    );
+
+
+  if (!reel) {
+
+    throw new Error(
+      'Reel not found.'
+    );
+
+  }
+
+
+  const button =
+    document.querySelector(
+      `[data-action="analyze"][data-reel-id="${reelId}"]`
+    );
+
+
+  if (button) {
+
+    button.disabled = true;
+
+    button.textContent =
+      '🤖 Analyzing...';
+
+  }
+
+
+  try {
+
+    const response =
+      await api(
+        `/api/reels/${encodeURIComponent(
+          reelId
+        )}/analyze`,
+        {
+          method: 'POST'
+        }
+      );
+
+
+    const updated =
+      response.reel;
+
+
+    if (updated) {
+
+      state.reels =
+        mergeReels(
+          state.reels,
+          [updated]
+        );
+
+    }
+
+
+    saveLocalState();
+
+    render();
+
+
+    showToast(
+      'AI analýza hotová.'
+    );
+
+  } finally {
+
+    if (button) {
+
+      button.disabled = false;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
    SELECT HOOK
-========================= */
+========================================================= */
 
 function selectHook(
   reelId,
   hook
 ) {
+
   const reel =
-    state.clips.find(
+    state.reels.find(
       item =>
-        item.id === reelId
+        String(item.id) ===
+        String(reelId)
     );
 
-  if (!reel) return;
+
+  if (!reel) {
+    return;
+  }
+
 
   reel.selectedHook =
     hook;
 
-  saveState();
 
-  const card =
-    document.querySelector(
-      `.reel-card[data-reel-id="${reelId}"]`
-    );
+  saveLocalState();
 
-  if (!card) return;
+  render();
 
-  card
-    .querySelectorAll('.hook-option')
-    .forEach(button => {
-
-      button.classList.toggle(
-        'selected',
-        button.dataset.hook === hook
-      );
-    });
-
-
-  const existingRender =
-    card.querySelector(
-      '.render-reel'
-    );
-
-  if (!existingRender) {
-
-    const actions =
-      card.querySelector(
-        '.reel-actions'
-      );
-
-    if (actions) {
-
-      const button =
-        document.createElement(
-          'button'
-        );
-
-      button.className =
-        'secondary render-reel';
-
-      button.dataset.id =
-        reelId;
-
-      button.textContent =
-        '🎬 Render';
-
-      button.addEventListener(
-        'click',
-        () =>
-          renderReel(
-            reelId
-          )
-      );
-
-      actions.appendChild(
-        button
-      );
-    }
-  }
 }
 
 
-/* =========================
-   RENDER REEL
-========================= */
+/* =========================================================
+   RENDER
+========================================================= */
 
 async function renderReel(
   reelId
 ) {
-  if (busy) return;
 
   const reel =
-    state.clips.find(
+    state.reels.find(
       item =>
-        item.id === reelId
+        String(item.id) ===
+        String(reelId)
     );
 
-  if (!reel) return;
+
+  if (!reel) {
+
+    throw new Error(
+      'Reel not found.'
+    );
+
+  }
+
 
   const hook =
-    reel.selectedHook ||
-    reel.aiAnalysis?.hooks?.[0] ||
-    '';
+    String(
+      reel.selectedHook ||
+      (
+        reel.analysis &&
+        reel.analysis.hooks &&
+        reel.analysis.hooks[0]
+      ) ||
+      ''
+    ).trim();
+
 
   if (!hook) {
-    showError(
-      'Select a hook first.'
+
+    throw new Error(
+      'Najprv vyber hook.'
     );
-    return;
+
   }
 
-  busy = true;
+
+  const account =
+    state.accounts.find(
+      item =>
+        String(item.id) ===
+        String(reel.accountId)
+    );
+
+
+  const button =
+    document.querySelector(
+      `[data-action="render"][data-reel-id="${reelId}"]`
+    );
+
+
+  if (button) {
+
+    button.disabled = true;
+
+    button.textContent =
+      '🎬 Rendering...';
+
+  }
+
 
   try {
-    const jobId =
-      crypto.randomUUID();
 
-    const result =
+    const response =
       await api(
-        `/api/jobs/${jobId}/render`,
+        `/api/jobs/${encodeURIComponent(
+          reelId
+        )}/render`,
         {
           method: 'POST',
-          body: JSON.stringify({
-            reelId,
-            hook
-          })
+
+          body:
+            JSON.stringify({
+
+              hook,
+
+              category:
+                account
+                  ? account.category
+                  : 'meme'
+
+            })
         }
       );
 
-    if (
-      result.job
-    ) {
-      reel.jobId =
-        result.job.id;
 
-      reel.renderedUrl =
-        API +
-        result.job.outputUrl;
+    reel.selectedHook =
+      hook;
 
-      reel.renderStatus =
-        result.job.status;
-    }
-
-    reel.used =
-      true;
-
-    saveState();
-
-    await loadData();
-
-    const loadedReel =
-      state.clips.find(
-        item =>
-          item.id === reelId
-      );
-
-    if (loadedReel) {
-      loadedReel.aiAnalysis =
-        reel.aiAnalysis;
-
-      loadedReel.selectedHook =
-        reel.selectedHook;
-
-      loadedReel.renderedUrl =
-        reel.renderedUrl;
-
-      loadedReel.renderStatus =
-        reel.renderStatus;
-
-      saveState();
-    }
-
-    alert(
-      'Reel rendered successfully.'
-    );
-
-    await refreshLatestBatch();
-
-  } catch (error) {
-    showError(
-      `Render failed:\n\n${error.message}`
-    );
-
-  } finally {
-    busy = false;
-  }
-}
+    reel.rendered = true;
 
 
-/* =========================
-   REFRESH BATCH
-========================= */
+    saveLocalState();
 
-async function refreshLatestBatch() {
-  const batch =
-    state.batches[0];
-
-  if (!batch) {
     render();
-    return;
-  }
-
-  const container =
-    document.getElementById(
-      'latestBatch'
-    );
-
-  if (!container) {
-    render();
-    return;
-  }
-
-  try {
-    const data =
-      await api(
-        `/api/batches/${batch.id}`
-      );
-
-    data.reels.forEach(
-      updatedReel => {
-
-        const existing =
-          state.clips.find(
-            item =>
-              item.id ===
-              updatedReel.id
-          );
-
-        if (existing) {
-          Object.assign(
-            existing,
-            updatedReel
-          );
-        }
-      }
-    );
-
-    saveState();
-
-    container.innerHTML =
-      data.reels
-        .map(
-          reel =>
-            reelCard(reel)
-        )
-        .join('');
-
-    attachReelEvents(
-      container
-    );
-
-  } catch (error) {
-    console.error(
-      'Refresh batch failed:',
-      error
-    );
-  }
-}
 
 
-/* =========================
-   LIBRARY
-========================= */
+    if (response.previewUrl) {
 
-function library(v) {
-  const rendered =
-    state.clips.filter(
-      reel =>
-        reel.renderedUrl
-    );
+      const fullUrl =
+        `${API}${response.previewUrl}`;
 
-  v.innerHTML = `
-    <div class="page">
 
-      <div class="topbar">
-        <div>
-          <div class="brand">Library</div>
-          <div class="muted">
-            ${rendered.length} rendered clips
+      showModal(`
+
+        <div class="modal-content render-result">
+
+          <div class="modal-title">
+            ✓ Reel ready
           </div>
-        </div>
-      </div>
+
+          <video
+            class="render-video"
+            src="${escapeHtml(
+              fullUrl
+            )}"
+            controls
+            playsinline
+          ></video>
 
 
-      ${
-        rendered.length
-          ? `
-            <div class="library-grid">
-
-              ${rendered
-                .map(
-                  reel => `
-                    <article class="library-card">
-
-                      ${
-                        reel.previewUrl
-                          ? `
-                            <img
-                              src="${escapeHtml(
-                                reel.previewUrl
-                              )}"
-                              alt=""
-                            >
-                          `
-                          : ''
-                      }
-
-                      <div class="library-content">
-
-                        <div class="reel-meta">
-                          ${escapeHtml(
-                            accountName(
-                              reel.accountId
-                            )
-                          )}
-                        </div>
-
-                        ${
-                          reel.selectedHook
-                            ? `
-                              <strong>
-                                ${escapeHtml(
-                                  reel.selectedHook
-                                )}
-                              </strong>
-                            `
-                            : ''
-                        }
-
-                        <a
-                          class="primary small"
-                          href="${escapeHtml(
-                            reel.renderedUrl
-                          )}"
-                          target="_blank"
-                          rel="noopener"
-                        >
-                          ▶ Open video
-                        </a>
-
-                      </div>
-
-                    </article>
-                  `
-                )
-                .join('')}
-
-            </div>
-          `
-          : `
-            <div class="empty-card">
-
-              <div class="empty-icon">
-                🎬
-              </div>
-
-              <strong>
-                Nothing rendered yet.
-              </strong>
-
-              <p>
-                Analyze a Reel, choose a hook and render it.
-              </p>
-
-            </div>
-          `
-      }
-
-    </div>
-
-    ${bottomNav()}
-  `;
-}
-
-
-/* =========================
-   SETTINGS
-========================= */
-
-function settings(v) {
-  v.innerHTML = `
-    <div class="page">
-
-      <div class="topbar">
-        <div>
-          <div class="brand">Settings</div>
-          <div class="muted">
-            Make it yours.
-          </div>
-        </div>
-      </div>
-
-
-      <section class="settings-card">
-
-        <h2>Hook style</h2>
-
-        <select id="style">
-
-          <option
-            value="Relatable"
-            ${
-              state.settings.style ===
-              'Relatable'
-                ? 'selected'
-                : ''
-            }
+          <a
+            class="primary-button"
+            href="${escapeHtml(
+              fullUrl
+            )}"
+            target="_blank"
+            rel="noopener"
           >
-            Relatable
-          </option>
+            Open rendered Reel
+          </a>
 
-          <option
-            value="Gen Z"
-            ${
-              state.settings.style ===
-              'Gen Z'
-                ? 'selected'
-                : ''
-            }
+
+          ${
+            reel.aiCaption
+              ? `
+                <button
+                  class="secondary-button"
+                  data-modal-action="copy-result-caption"
+                >
+                  Copy caption
+                </button>
+              `
+              : ''
+          }
+
+
+          <button
+            class="text-button"
+            data-modal-action="close"
           >
-            Gen Z
-          </option>
+            Close
+          </button>
 
-          <option
-            value="Curiosity"
-            ${
-              state.settings.style ===
-              'Curiosity'
-                ? 'selected'
-                : ''
-            }
-          >
-            Curiosity
-          </option>
-
-          <option
-            value="Controversial"
-            ${
-              state.settings.style ===
-              'Controversial'
-                ? 'selected'
-                : ''
-            }
-          >
-            Controversial
-          </option>
-
-        </select>
-
-
-        <h2>Text position</h2>
-
-        <select id="position">
-
-          <option
-            value="Top"
-            ${
-              state.settings.position ===
-              'Top'
-                ? 'selected'
-                : ''
-            }
-          >
-            Top
-          </option>
-
-          <option
-            value="Center"
-            ${
-              state.settings.position ===
-              'Center'
-                ? 'selected'
-                : ''
-            }
-          >
-            Center
-          </option>
-
-          <option
-            value="Bottom"
-            ${
-              state.settings.position ===
-              'Bottom'
-                ? 'selected'
-                : ''
-            }
-          >
-            Bottom
-          </option>
-
-        </select>
-
-
-        <h2>Font</h2>
-
-        <select id="font">
-
-          <option
-            value="Bold"
-            ${
-              state.settings.font ===
-              'Bold'
-                ? 'selected'
-                : ''
-            }
-          >
-            Bold
-          </option>
-
-          <option
-            value="Clean"
-            ${
-              state.settings.font ===
-              'Clean'
-                ? 'selected'
-                : ''
-            }
-          >
-            Clean
-          </option>
-
-        </select>
-
-
-        <div class="connection-note">
-          <strong>
-            Apify
-          </strong>
-
-          is connected through the secure backend.
-          Your Apify token is never stored in this browser.
         </div>
 
-
-        <button
-          class="secondary full"
-          id="testBackend"
-        >
-          Test backend connection
-        </button>
+      `);
 
 
-        <button
-          class="secondary danger full"
-          id="clear"
-        >
-          Reset all local data
-        </button>
-
-      </section>
-
-    </div>
-
-    ${bottomNav()}
-  `;
-
-
-  document
-    .getElementById('style')
-    ?.addEventListener(
-      'change',
-      event => {
-
-        state.settings.style =
-          event.target.value;
-
-        saveState();
-      }
-    );
-
-
-  document
-    .getElementById('position')
-    ?.addEventListener(
-      'change',
-      event => {
-
-        state.settings.position =
-          event.target.value;
-
-        saveState();
-      }
-    );
-
-
-  document
-    .getElementById('font')
-    ?.addEventListener(
-      'change',
-      event => {
-
-        state.settings.font =
-          event.target.value;
-
-        saveState();
-      }
-    );
-
-
-  document
-    .getElementById('testBackend')
-    ?.addEventListener(
-      'click',
-      async () => {
-
-        const button =
-          document.getElementById(
-            'testBackend'
-          );
-
-        button.disabled = true;
-        button.textContent =
-          'Testing...';
-
-        try {
-
-          const result =
-            await api(
-              '/api/health'
-            );
-
-          alert(
-            `Backend OK — version ${result.version}`
-          );
-
-        } catch (error) {
-
-          alert(
-            `Backend connection failed:\n\n${error.message}`
-          );
-
-        } finally {
-
-          button.disabled = false;
-          button.textContent =
-            'Test backend connection';
-        }
-      }
-    );
-
-
-  document
-    .getElementById('clear')
-    ?.addEventListener(
-      'click',
-      () => {
-
-        const confirmed =
-          confirm(
-            'Reset local Clipper data?'
-          );
-
-        if (!confirmed) return;
-
-        localStorage.removeItem(
-          KEY
+      const copyButton =
+        document.querySelector(
+          '[data-modal-action="copy-result-caption"]'
         );
 
-        location.reload();
+
+      if (copyButton) {
+
+        copyButton.addEventListener(
+          'click',
+          () =>
+            copyText(
+              reel.aiCaption
+            )
+        );
+
       }
+
+    }
+
+  } finally {
+
+    if (button) {
+
+      button.disabled = false;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   FILTER
+========================================================= */
+
+function filterUnused() {
+
+  const account =
+    getSelectedAccount();
+
+
+  if (!account) {
+    return;
+  }
+
+
+  const reels =
+    sortOldestFirst(
+      getAccountReels(
+        account.id
+      ).filter(
+        reel => !reel.used
+      )
     );
 
 
-  document
-    .querySelectorAll('[data-tab]')
-    .forEach(button => {
+  app.innerHTML = `
 
-      button.addEventListener(
-        'click',
-        () => {
+    <div class="clipper-app">
 
-          state.tab =
-            button.dataset.tab;
+      ${renderHeader()}
 
-          saveState();
+      <main class="clipper-main">
 
-          render();
-        }
-      );
-    });
-}
+        <section class="page-section">
 
+          <div class="page-title">
 
-/* =========================
-   BOTTOM NAV
-========================= */
+            <div class="eyebrow">
+              UNUSED
+            </div>
 
-function bottomNav() {
-  return `
-    <nav class="bottom-nav">
+            <h1>
+              Unused Reels
+            </h1>
 
-      <button
-        class="${
-          state.tab === 'home'
-            ? 'active'
-            : ''
-        }"
-        data-tab="home"
-      >
-        <span>⌂</span>
-        Home
-      </button>
+          </div>
 
-      <button
-        class="${
-          state.tab === 'library'
-            ? 'active'
-            : ''
-        }"
-        data-tab="library"
-      >
-        <span>▣</span>
-        Library
-      </button>
+          <div class="reel-grid">
+            ${
+              reels.length
+                ? reels
+                    .map(
+                      reelCard
+                    )
+                    .join('')
+                : `
+                  <div class="empty-card">
+                    No unused Reels.
+                  </div>
+                `
+            }
+          </div>
 
-      <button
-        class="${
-          state.tab === 'settings'
-            ? 'active'
-            : ''
-        }"
-        data-tab="settings"
-      >
-        <span>⚙</span>
-        Settings
-      </button>
+        </section>
 
-    </nav>
+      </main>
+
+      ${renderBottomNav()}
+
+    </div>
+
   `;
+
+
+  attachEvents();
+
 }
 
 
-/* =========================
-   RENDER APP
-========================= */
+/* =========================================================
+   BACKEND TEST
+========================================================= */
 
-function render() {
-  const root =
-    appRoot();
+async function testBackend() {
 
-  if (!root) return;
+  showToast(
+    'Testing backend...'
+  );
 
-  if (state.tab === 'library') {
-    library(root);
-    return;
-  }
 
-  if (state.tab === 'settings') {
-    settings(root);
-    return;
-  }
+  const response =
+    await api(
+      '/api/health'
+    );
 
-  home(root);
+
+  showToast(
+    response.ok
+      ? `Backend OK · v${response.version}`
+      : 'Backend error'
+  );
+
 }
 
 
-/* =========================
+/* =========================================================
+   COPY
+========================================================= */
+
+async function copyText(
+  text
+) {
+
+  try {
+
+    await navigator.clipboard.writeText(
+      text
+    );
+
+    showToast(
+      'Copied ✓'
+    );
+
+  } catch (error) {
+
+    const textarea =
+      document.createElement(
+        'textarea'
+      );
+
+    textarea.value =
+      text;
+
+    textarea.style.position =
+      'fixed';
+
+    textarea.style.opacity =
+      '0';
+
+    document.body.appendChild(
+      textarea
+    );
+
+    textarea.select();
+
+    document.execCommand(
+      'copy'
+    );
+
+    textarea.remove();
+
+    showToast(
+      'Copied ✓'
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function showModal(
+  html
+) {
+
+  closeModal();
+
+
+  const overlay =
+    document.createElement(
+      'div'
+    );
+
+
+  overlay.id =
+    'clipper-modal';
+
+
+  overlay.className =
+    'modal-overlay';
+
+
+  overlay.innerHTML =
+    html;
+
+
+  document.body.appendChild(
+    overlay
+  );
+
+
+  overlay.addEventListener(
+    'click',
+    event => {
+
+      if (
+        event.target ===
+        overlay
+      ) {
+
+        closeModal();
+
+      }
+
+    }
+  );
+
+
+  overlay
+    .querySelectorAll(
+      '[data-modal-action="close"]'
+    )
+    .forEach(
+      button =>
+        button.addEventListener(
+          'click',
+          closeModal
+        )
+    );
+
+}
+
+
+function closeModal() {
+
+  const modal =
+    document.getElementById(
+      'clipper-modal'
+    );
+
+
+  if (modal) {
+    modal.remove();
+  }
+
+}
+
+
+/* =========================================================
+   LOADING / ERROR
+========================================================= */
+
+function showLoading() {
+
+  app.innerHTML = `
+
+    <div class="loading-screen">
+
+      <div class="loading-logo">
+        CLIPPER
+      </div>
+
+      <div class="loading-spinner"></div>
+
+      <p>
+        Loading...
+      </p>
+
+    </div>
+
+  `;
+
+}
+
+
+function showError(
+  message
+) {
+
+  app.innerHTML = `
+
+    <div class="error-screen">
+
+      <div class="error-icon">
+        !
+      </div>
+
+      <h2>
+        Clipper error
+      </h2>
+
+      <p>
+        ${escapeHtml(
+          message
+        )}
+      </p>
+
+      <button
+        class="primary-button"
+        onclick="location.reload()"
+      >
+        Try again
+      </button>
+
+    </div>
+
+  `;
+
+}
+
+
+function showToast(
+  message
+) {
+
+  let toast =
+    document.getElementById(
+      'clipper-toast'
+    );
+
+
+  if (!toast) {
+
+    toast =
+      document.createElement(
+        'div'
+      );
+
+    toast.id =
+      'clipper-toast';
+
+    document.body.appendChild(
+      toast
+    );
+
+  }
+
+
+  toast.textContent =
+    message;
+
+
+  toast.classList.add(
+    'visible'
+  );
+
+
+  clearTimeout(
+    window.__clipperToast
+  );
+
+
+  window.__clipperToast =
+    setTimeout(
+      () => {
+
+        toast.classList.remove(
+          'visible'
+        );
+
+      },
+      3000
+    );
+
+}
+
+
+/* =========================================================
    START
-========================= */
+========================================================= */
 
-(async function init() {
-
-  render();
-
-  await loadData();
-
-  render();
-
-})();
+loadData();
