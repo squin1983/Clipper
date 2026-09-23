@@ -1,15 +1,17 @@
 const API = 'https://clipper-backend-z71i.onrender.com';
 
-const STORAGE_KEY = 'clipper-state-v15';
+const STORAGE_KEY = 'clipper-state-v16';
 
 const DEFAULT_STATE = {
   accounts: [],
   reels: [],
   batches: [],
   settings: {
-    selectedAccountId: null
+    selectedAccountId: null,
+    selectedReelId: null
   },
-  tab: 'home'
+  tab: 'home',
+  reelView: 'oldest'
 };
 
 let state = loadLocalState();
@@ -157,7 +159,9 @@ async function api(
         : null;
     } catch (_) {
       data = {
-        error: text || 'Invalid server response.'
+        error:
+          text ||
+          'Invalid server response.'
       };
     }
 
@@ -170,7 +174,10 @@ async function api(
 
     return data;
   } catch (error) {
-    if (error.name === 'AbortError') {
+    if (
+      error.name ===
+      'AbortError'
+    ) {
       throw new Error(
         'Request timed out. The backend took too long to respond.'
       );
@@ -182,6 +189,10 @@ async function api(
   }
 }
 
+/* =========================================================
+   DATA
+========================================================= */
+
 async function loadData() {
   try {
     const [
@@ -189,9 +200,23 @@ async function loadData() {
       reels,
       batches
     ] = await Promise.all([
-      api('/api/accounts', {}, 30000),
-      api('/api/reels?limit=1000', {}, 30000),
-      api('/api/batches', {}, 30000)
+      api(
+        '/api/accounts',
+        {},
+        30000
+      ),
+
+      api(
+        '/api/reels?limit=5000',
+        {},
+        30000
+      ),
+
+      api(
+        '/api/batches',
+        {},
+        30000
+      )
     ]);
 
     state.accounts =
@@ -218,7 +243,8 @@ async function loadData() {
       )
     ) {
       state.settings.selectedAccountId =
-        state.accounts[0]?.id || null;
+        state.accounts[0]?.id ||
+        null;
     }
 
     if (
@@ -230,6 +256,7 @@ async function loadData() {
     }
 
     saveLocalState();
+
     render();
   } catch (error) {
     console.error(error);
@@ -256,21 +283,86 @@ function getSelectedReel() {
   );
 }
 
-function getUnusedReels() {
+function getAccountReels() {
+  const account =
+    getSelectedAccount();
+
+  if (!account) {
+    return [];
+  }
+
   return state.reels.filter(
-    (reel) => !reel.used
+    (reel) =>
+      reel.accountId ===
+      account.id
+  );
+}
+
+function getUnusedReels() {
+  return getAccountReels().filter(
+    (reel) =>
+      !reel.used &&
+      !reel.rendered
+  );
+}
+
+function sortOldestFirst(reels) {
+  return [...reels].sort(
+    (a, b) => {
+      const dateA =
+        a.publishedAt
+          ? new Date(
+              a.publishedAt
+            ).getTime()
+          : 0;
+
+      const dateB =
+        b.publishedAt
+          ? new Date(
+              b.publishedAt
+            ).getTime()
+          : 0;
+
+      return dateA - dateB;
+    }
+  );
+}
+
+function sortNewestFirst(reels) {
+  return [...reels].sort(
+    (a, b) => {
+      const dateA =
+        a.publishedAt
+          ? new Date(
+              a.publishedAt
+            ).getTime()
+          : 0;
+
+      const dateB =
+        b.publishedAt
+          ? new Date(
+              b.publishedAt
+            ).getTime()
+          : 0;
+
+      return dateB - dateA;
+    }
   );
 }
 
 function mergeReels(newReels) {
   const map = new Map(
-    state.reels.map((reel) => [
-      reel.id,
-      reel
-    ])
+    state.reels.map(
+      (reel) => [
+        reel.id,
+        reel
+      ]
+    )
   );
 
-  for (const reel of newReels || []) {
+  for (
+    const reel of newReels || []
+  ) {
     const existing =
       map.get(reel.id);
 
@@ -285,28 +377,21 @@ function mergeReels(newReels) {
     );
   }
 
-  state.reels = Array.from(
-    map.values()
-  ).sort((a, b) => {
-    const dateA = a.publishedAt
-      ? new Date(
-          a.publishedAt
-        ).getTime()
-      : 0;
-
-    const dateB = b.publishedAt
-      ? new Date(
-          b.publishedAt
-        ).getTime()
-      : 0;
-
-    return dateA - dateB;
-  });
+  state.reels =
+    Array.from(
+      map.values()
+    );
 }
+
+/* =========================================================
+   MAIN RENDER
+========================================================= */
 
 function render() {
   const root =
-    document.getElementById('app');
+    document.getElementById(
+      'app'
+    );
 
   if (!root) {
     return;
@@ -316,19 +401,23 @@ function render() {
     <div class="clipper-app">
 
       <header class="clipper-header">
+
         <div>
           <h1>Clipper</h1>
+
           <div class="clipper-subtitle">
             Instagram Reel Remix Studio
           </div>
         </div>
 
         <div class="clipper-version">
-          V1.5
+          V1.6
         </div>
+
       </header>
 
       <nav class="clipper-nav">
+
         <button
           class="${
             state.tab === 'home'
@@ -372,9 +461,11 @@ function render() {
         >
           Settings
         </button>
+
       </nav>
 
       <main class="clipper-content">
+
         ${
           state.tab === 'home'
             ? renderHome()
@@ -384,6 +475,7 @@ function render() {
             ? renderBatches()
             : renderSettings()
         }
+
       </main>
 
     </div>
@@ -392,9 +484,15 @@ function render() {
 
 function setTab(tab) {
   state.tab = tab;
+
   saveLocalState();
+
   render();
 }
+
+/* =========================================================
+   HOME
+========================================================= */
 
 function renderHome() {
   const account =
@@ -409,6 +507,7 @@ function renderHome() {
   if (!account) {
     return `
       <section class="card empty-state">
+
         <h2>Add an Instagram account</h2>
 
         <p>
@@ -422,6 +521,7 @@ function renderHome() {
         >
           + Add Instagram Account
         </button>
+
       </section>
     `;
   }
@@ -430,18 +530,23 @@ function renderHome() {
     <section class="card">
 
       <div class="section-header">
+
         <div>
-          <h2>@${escapeHtml(
-            account.username
-          )}</h2>
+
+          <h2>
+            @${escapeHtml(
+              account.username
+            )}
+          </h2>
 
           <p>
             ${
-              state.reels.length
+              getAccountReels().length
             } Reels loaded · ${
     unused.length
   } unused
           </p>
+
         </div>
 
         <div class="button-row">
@@ -454,51 +559,106 @@ function renderHome() {
           </button>
 
           <button
-            onclick="loadOldestBatch()"
+            onclick="showOldestReels()"
             id="oldest-button"
           >
             Load Oldest Reels
           </button>
 
+          <button
+            onclick="showNewestReels()"
+          >
+            Show Newest
+          </button>
+
         </div>
+
       </div>
 
     </section>
 
     ${
       selectedReel
-        ? renderReelEditor(selectedReel)
-        : renderReelList(unused)
+        ? renderReelEditor(
+            selectedReel
+          )
+        : renderReelList(
+            unused
+          )
     }
   `;
 }
+
+/* =========================================================
+   REEL LIST
+========================================================= */
 
 function renderReelList(reels) {
   if (!reels.length) {
     return `
       <section class="card empty-state">
+
         <h2>No unused Reels</h2>
 
         <p>
           Sync Instagram to discover more Reels.
         </p>
+
       </section>
     `;
   }
 
+  let ordered;
+
+  if (
+    state.reelView ===
+    'newest'
+  ) {
+    ordered =
+      sortNewestFirst(
+        reels
+      );
+  } else {
+    ordered =
+      sortOldestFirst(
+        reels
+      );
+  }
+
   const visible =
-    reels.slice(0, 20);
+    ordered.slice(
+      0,
+      20
+    );
 
   return `
     <section class="card">
 
       <div class="section-header">
+
         <div>
-          <h2>Unused Reels</h2>
+
+          <h2>
+            ${
+              state.reelView ===
+              'newest'
+                ? 'Newest Reels'
+                : 'Oldest Reels'
+            }
+          </h2>
+
           <p>
             Select a Reel to analyze it with AI.
           </p>
+
         </div>
+
+        <div class="status">
+          ${
+            reels.length
+          } unused
+        </div>
+
       </div>
 
       <div class="reel-grid">
@@ -533,9 +693,9 @@ function renderReelList(reels) {
 
                   <strong>
                     ${
-                      reel.title
+                      reel.caption
                         ? escapeHtml(
-                            reel.title.slice(
+                            reel.caption.slice(
                               0,
                               100
                             )
@@ -563,8 +723,9 @@ function renderReelList(reels) {
         reels.length > 20
           ? `
             <p class="muted">
-              Showing the first 20 of
-              ${reels.length} unused Reels.
+              Showing 20 of
+              ${reels.length}
+              unused Reels.
             </p>
           `
           : ''
@@ -574,23 +735,289 @@ function renderReelList(reels) {
   `;
 }
 
+function showOldestReels() {
+  state.reelView =
+    'oldest';
+
+  delete state.settings.selectedReelId;
+
+  saveLocalState();
+
+  render();
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function showNewestReels() {
+  state.reelView =
+    'newest';
+
+  delete state.settings.selectedReelId;
+
+  saveLocalState();
+
+  render();
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
 function selectReel(reelId) {
   state.settings.selectedReelId =
     reelId;
 
   saveLocalState();
+
   render();
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
 }
+
+/* =========================================================
+   AI ANALYSIS
+========================================================= */
+
+function normalizeAnalysis(
+  analysis
+) {
+  if (!analysis) {
+    return {};
+  }
+
+  const normalized = {
+    ...analysis
+  };
+
+  /*
+   * Backend V1.7 returns:
+   *
+   * hook
+   * hookAlternatives
+   *
+   * Frontend uses:
+   *
+   * hooks
+   */
+
+  const hooks = [];
+
+  if (
+    analysis.hook &&
+    String(
+      analysis.hook
+    ).trim()
+  ) {
+    hooks.push(
+      String(
+        analysis.hook
+      ).trim()
+    );
+  }
+
+  if (
+    Array.isArray(
+      analysis.hookAlternatives
+    )
+  ) {
+    for (
+      const hook of
+      analysis.hookAlternatives
+    ) {
+      if (
+        hook &&
+        String(
+          hook
+        ).trim()
+      ) {
+        hooks.push(
+          String(
+            hook
+          ).trim()
+        );
+      }
+    }
+  }
+
+  /*
+   * Also support an older backend
+   * that might already return hooks.
+   */
+
+  if (
+    !hooks.length &&
+    Array.isArray(
+      analysis.hooks
+    )
+  ) {
+    normalized.hooks =
+      analysis.hooks.filter(
+        Boolean
+      );
+  } else {
+    normalized.hooks =
+      hooks;
+  }
+
+  return normalized;
+}
+
+function renderAnalysisFields(
+  analysis
+) {
+  const fields = [];
+
+  if (
+    analysis.onScreenText
+  ) {
+    fields.push(`
+      <div class="analysis-box">
+
+        <strong>
+          On-screen Text
+        </strong>
+
+        <p>
+          ${escapeHtml(
+            analysis.onScreenText
+          )}
+        </p>
+
+      </div>
+    `);
+  }
+
+  if (
+    analysis.caption
+  ) {
+    fields.push(`
+      <div class="analysis-box">
+
+        <strong>
+          Caption
+        </strong>
+
+        <p>
+          ${escapeHtml(
+            analysis.caption
+          )}
+        </p>
+
+      </div>
+    `);
+  }
+
+  if (
+    Array.isArray(
+      analysis.hashtags
+    ) &&
+    analysis.hashtags.length
+  ) {
+    fields.push(`
+      <div class="analysis-box">
+
+        <strong>
+          Hashtags
+        </strong>
+
+        <p class="hashtags">
+          ${analysis.hashtags
+            .map(
+              (tag) =>
+                escapeHtml(
+                  tag
+                )
+            )
+            .join(' ')}
+        </p>
+
+      </div>
+    `);
+  }
+
+  if (
+    analysis.tone
+  ) {
+    fields.push(`
+      <div class="analysis-box">
+
+        <strong>
+          Tone
+        </strong>
+
+        <p>
+          ${escapeHtml(
+            analysis.tone
+          )}
+        </p>
+
+      </div>
+    `);
+  }
+
+  if (
+    Array.isArray(
+      analysis.topics
+    ) &&
+    analysis.topics.length
+  ) {
+    fields.push(`
+      <div class="analysis-box">
+
+        <strong>
+          Topics
+        </strong>
+
+        <p>
+          ${analysis.topics
+            .map(
+              (topic) =>
+                escapeHtml(
+                  topic
+                )
+            )
+            .join(', ')}
+        </p>
+
+      </div>
+    `);
+  }
+
+  if (!fields.length) {
+    return '';
+  }
+
+  return `
+    <div class="analysis-details">
+      ${fields.join('')}
+    </div>
+  `;
+}
+
+/* =========================================================
+   REEL EDITOR
+========================================================= */
 
 function renderReelEditor(reel) {
   const analysis =
-    reel.analysis || {};
+    normalizeAnalysis(
+      reel.analysis
+    );
 
   const hooks =
     Array.isArray(
       analysis.hooks
     )
-      ? analysis.hooks.filter(Boolean)
+      ? analysis.hooks.filter(
+          Boolean
+        )
       : [];
 
   const selectedHook =
@@ -604,6 +1031,7 @@ function renderReelEditor(reel) {
       <div class="section-header">
 
         <div>
+
           <button
             class="back-button"
             onclick="clearSelectedReel()"
@@ -620,11 +1048,13 @@ function renderReelEditor(reel) {
               reel.publishedAt
             )}
           </p>
+
         </div>
 
         <div>
+
           ${
-            reel.analyzed
+            reel.analysis
               ? `
                 <span class="status success">
                   AI analyzed
@@ -636,6 +1066,7 @@ function renderReelEditor(reel) {
                 </span>
               `
           }
+
         </div>
 
       </div>
@@ -644,6 +1075,7 @@ function renderReelEditor(reel) {
         reel.thumbnailUrl
           ? `
             <div class="preview-wrapper">
+
               <img
                 class="reel-preview"
                 src="${escapeHtml(
@@ -651,21 +1083,27 @@ function renderReelEditor(reel) {
                 )}"
                 alt="Reel preview"
               >
+
             </div>
           `
           : ''
       }
 
       ${
-        reel.title
+        reel.caption
           ? `
             <div class="original-caption">
-              <h3>Original Caption</h3>
+
+              <h3>
+                Original Caption
+              </h3>
+
               <p>
                 ${escapeHtml(
-                  reel.title
+                  reel.caption
                 )}
               </p>
+
             </div>
           `
           : ''
@@ -674,7 +1112,10 @@ function renderReelEditor(reel) {
       <div class="analysis-section">
 
         <div class="analysis-header">
-          <h3>AI Analysis</h3>
+
+          <h3>
+            AI Analysis
+          </h3>
 
           <button
             class="primary"
@@ -682,23 +1123,29 @@ function renderReelEditor(reel) {
             onclick="analyzeReel('${reel.id}')"
           >
             🤖 ${
-              reel.analyzed
+              reel.analysis
                 ? 'Analyze Again'
                 : 'Analyze with AI'
             }
           </button>
+
         </div>
 
         ${
           analysis.summary
             ? `
               <div class="summary-box">
-                <strong>Summary</strong>
+
+                <strong>
+                  Summary
+                </strong>
+
                 <p>
                   ${escapeHtml(
                     analysis.summary
                   )}
                 </p>
+
               </div>
             `
             : `
@@ -707,6 +1154,10 @@ function renderReelEditor(reel) {
               </div>
             `
         }
+
+        ${renderAnalysisFields(
+          analysis
+        )}
 
         ${
           hooks.length
@@ -717,19 +1168,29 @@ function renderReelEditor(reel) {
                   Choose a Hook
                 </h3>
 
+                <p class="muted">
+                  Select the hook you want Clipper
+                  to place on the Reel.
+                </p>
+
                 <div class="hooks-list">
 
                   ${hooks
                     .map(
-                      (hook, index) => `
+                      (
+                        hook,
+                        index
+                      ) => `
                         <button
                           class="hook-option ${
-                            selectedHook === hook
+                            selectedHook ===
+                            hook
                               ? 'selected'
                               : ''
                           }"
                           onclick="selectHook('${reel.id}', ${index})"
                         >
+
                           <span>
                             ${index + 1}.
                           </span>
@@ -739,6 +1200,7 @@ function renderReelEditor(reel) {
                               hook
                             )}
                           </strong>
+
                         </button>
                       `
                     )
@@ -761,9 +1223,11 @@ function renderReelEditor(reel) {
                 </h3>
 
                 <div class="selected-hook">
+
                   ${escapeHtml(
                     selectedHook
                   )}
+
                 </div>
 
                 <label>
@@ -773,6 +1237,7 @@ function renderReelEditor(reel) {
                 <select
                   id="render-category"
                 >
+
                   <option value="music">
                     Music
                   </option>
@@ -784,6 +1249,7 @@ function renderReelEditor(reel) {
                   <option value="movie_tv">
                     Movie / TV
                   </option>
+
                 </select>
 
                 <button
@@ -793,6 +1259,17 @@ function renderReelEditor(reel) {
                 >
                   🎬 Render Reel
                 </button>
+
+                ${
+                  reel.render?.status ===
+                  'processing'
+                    ? `
+                      <div class="muted">
+                        Rendering…
+                      </div>
+                    `
+                    : ''
+                }
 
               </div>
             `
@@ -809,21 +1286,32 @@ function clearSelectedReel() {
   delete state.settings.selectedReelId;
 
   saveLocalState();
+
   render();
 }
 
-function selectHook(reelId, index) {
+async function selectHook(
+  reelId,
+  index
+) {
   const reel =
     state.reels.find(
-      (item) => item.id === reelId
+      (item) =>
+        item.id ===
+        reelId
     );
 
   if (!reel) {
     return;
   }
 
+  const analysis =
+    normalizeAnalysis(
+      reel.analysis
+    );
+
   const hooks =
-    reel.analysis?.hooks || [];
+    analysis.hooks || [];
 
   if (!hooks[index]) {
     return;
@@ -832,18 +1320,58 @@ function selectHook(reelId, index) {
   reel.selectedHook =
     hooks[index];
 
+  /*
+   * Save hook to backend too.
+   */
+
+  try {
+    await api(
+      `/api/reels/${encodeURIComponent(
+        reelId
+      )}/hook`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          hook:
+            reel.selectedHook
+        })
+      },
+      30000
+    );
+  } catch (error) {
+    console.error(
+      'Hook save failed:',
+      error
+    );
+
+    showError(
+      `Could not save hook: ${error.message}`
+    );
+
+    return;
+  }
+
   saveLocalState();
+
   render();
 }
 
-async function analyzeReel(reelId) {
+/* =========================================================
+   ANALYZE
+========================================================= */
+
+async function analyzeReel(
+  reelId
+) {
   const button =
     document.getElementById(
       'analyze-button'
     );
 
   if (button) {
-    button.disabled = true;
+    button.disabled =
+      true;
+
     button.textContent =
       '🤖 Analyzing…';
   }
@@ -857,7 +1385,7 @@ async function analyzeReel(reelId) {
         {
           method: 'POST'
         },
-        120000
+        180000
       );
 
     if (
@@ -883,26 +1411,41 @@ async function analyzeReel(reelId) {
     );
 
     if (button) {
-      button.disabled = false;
+      button.disabled =
+        false;
+
       button.textContent =
         '🤖 Analyze with AI';
     }
   }
 }
 
-async function renderReel(reelId) {
+/* =========================================================
+   RENDER
+========================================================= */
+
+async function renderReel(
+  reelId
+) {
   const reel =
     state.reels.find(
-      (item) => item.id === reelId
+      (item) =>
+        item.id ===
+        reelId
     );
 
   if (!reel) {
     return;
   }
 
+  const analysis =
+    normalizeAnalysis(
+      reel.analysis
+    );
+
   const hook =
     reel.selectedHook ||
-    reel.analysis?.hooks?.find(Boolean) ||
+    analysis.hooks?.[0] ||
     '';
 
   if (!hook) {
@@ -925,9 +1468,11 @@ async function renderReel(reelId) {
     );
 
   if (button) {
-    button.disabled = true;
+    button.disabled =
+      true;
+
     button.textContent =
-      '🎬 Rendering…';
+      '🎬 Starting render…';
   }
 
   try {
@@ -938,38 +1483,85 @@ async function renderReel(reelId) {
         )}/render`,
         {
           method: 'POST',
+
           body: JSON.stringify({
             hook,
             category
           })
         },
-        300000
+        60000
       );
 
     if (
-      result?.job?.status !==
-      'completed'
+      !result?.job?.id
     ) {
       throw new Error(
-        'Render did not complete successfully.'
+        'Backend did not return a render job.'
       );
     }
 
-    reel.used = true;
-    reel.rendered = true;
+    const jobId =
+      result.job.id;
+
+    showToast(
+      'Render started. Clipper is processing the Reel…'
+    );
+
+    if (button) {
+      button.textContent =
+        '🎬 Rendering…';
+    }
+
+    const completedJob =
+      await waitForRenderJob(
+        jobId
+      );
+
+    if (
+      completedJob.status !==
+      'completed'
+    ) {
+      throw new Error(
+        completedJob.error ||
+          'Render failed.'
+      );
+    }
+
+    reel.used =
+      true;
+
+    reel.rendered =
+      true;
+
     reel.renderedAt =
       new Date().toISOString();
+
+    reel.render = {
+      ...(reel.render || {}),
+      jobId,
+      status:
+        'completed',
+      outputUrl:
+        `/api/jobs/${encodeURIComponent(
+          jobId
+        )}/file`
+    };
 
     saveLocalState();
 
     const downloadUrl =
       `${API}/api/jobs/${encodeURIComponent(
-        result.job.id
+        jobId
       )}/file`;
 
-    showRenderSuccess(
-      downloadUrl
-    );
+    render();
+
+    setTimeout(() => {
+      showRenderSuccess(
+        downloadUrl
+      );
+    }, 50);
+
   } catch (error) {
     console.error(error);
 
@@ -978,12 +1570,88 @@ async function renderReel(reelId) {
     );
 
     if (button) {
-      button.disabled = false;
+      button.disabled =
+        false;
+
       button.textContent =
         '🎬 Render Reel';
     }
   }
 }
+
+/* =========================================================
+   RENDER JOB POLLING
+========================================================= */
+
+async function waitForRenderJob(
+  jobId
+) {
+  const MAX_WAIT =
+    10 * 60 * 1000;
+
+  const POLL_INTERVAL =
+    3000;
+
+  const started =
+    Date.now();
+
+  while (
+    Date.now() -
+      started <
+    MAX_WAIT
+  ) {
+    const result =
+      await api(
+        `/api/jobs/${encodeURIComponent(
+          jobId
+        )}`,
+        {},
+        30000
+      );
+
+    const job =
+      result?.job;
+
+    if (!job) {
+      throw new Error(
+        'Render job was not found.'
+      );
+    }
+
+    if (
+      job.status ===
+      'completed'
+    ) {
+      return job;
+    }
+
+    if (
+      job.status ===
+      'failed'
+    ) {
+      throw new Error(
+        job.error ||
+          'Render failed.'
+      );
+    }
+
+    await new Promise(
+      (resolve) =>
+        setTimeout(
+          resolve,
+          POLL_INTERVAL
+        )
+    );
+  }
+
+  throw new Error(
+    'Render is taking too long. Check the job again later.'
+  );
+}
+
+/* =========================================================
+   RENDER SUCCESS
+========================================================= */
 
 function showRenderSuccess(
   downloadUrl
@@ -998,7 +1666,9 @@ function showRenderSuccess(
   }
 
   const section =
-    document.createElement('div');
+    document.createElement(
+      'div'
+    );
 
   section.id =
     'render-success';
@@ -1008,6 +1678,7 @@ function showRenderSuccess(
 
   section.innerHTML = `
     <div>
+
       <h3>
         Render complete
       </h3>
@@ -1015,11 +1686,14 @@ function showRenderSuccess(
       <p>
         Your Reel is ready.
       </p>
+
     </div>
 
     <a
       class="primary download-button"
-      href="${downloadUrl}"
+      href="${escapeHtml(
+        downloadUrl
+      )}"
       target="_blank"
       rel="noopener"
     >
@@ -1028,13 +1702,21 @@ function showRenderSuccess(
   `;
 
   document
-    .querySelector('.clipper-content')
-    ?.prepend(section);
+    .querySelector(
+      '.clipper-content'
+    )
+    ?.prepend(
+      section
+    );
 
   showToast(
     'Render complete.'
   );
 }
+
+/* =========================================================
+   SYNC INSTAGRAM
+========================================================= */
 
 async function syncAccount() {
   const account =
@@ -1054,10 +1736,16 @@ async function syncAccount() {
     );
 
   if (button) {
-    button.disabled = true;
+    button.disabled =
+      true;
+
     button.textContent =
-      '↻ Syncing…';
+      '↻ Syncing Instagram…';
   }
+
+  showToast(
+    'Instagram sync started. This can take several minutes.'
+  );
 
   try {
     const result =
@@ -1068,25 +1756,32 @@ async function syncAccount() {
         {
           method: 'POST'
         },
-        300000
+        1200000
       );
 
     const reels =
       await api(
-        '/api/reels?limit=1000',
+        '/api/reels?limit=5000',
         {},
         30000
       );
 
-    mergeReels(reels);
+    mergeReels(
+      reels
+    );
 
     saveLocalState();
 
     showToast(
-      `Sync complete: ${result.added || 0} new Reels added.`
+      `Sync complete: ${
+        result.added || 0
+      } new Reels added. Total loaded: ${
+        getAccountReels().length
+      }.`
     );
 
     render();
+
   } catch (error) {
     console.error(error);
 
@@ -1095,87 +1790,18 @@ async function syncAccount() {
     );
 
     if (button) {
-      button.disabled = false;
+      button.disabled =
+        false;
+
       button.textContent =
         '↻ Sync Instagram';
     }
   }
 }
 
-async function loadOldestBatch() {
-  const account =
-    getSelectedAccount();
-
-  if (!account) {
-    showError(
-      'Select an Instagram account first.'
-    );
-
-    return;
-  }
-
-  const button =
-    document.getElementById(
-      'oldest-button'
-    );
-
-  if (button) {
-    button.disabled = true;
-    button.textContent =
-      'Loading…';
-  }
-
-  try {
-    const result =
-      await api(
-        `/api/batch/random?accountId=${encodeURIComponent(
-          account.id
-        )}&limit=10`,
-        {},
-        30000
-      );
-
-    if (
-      !result?.reels?.length
-    ) {
-      showToast(
-        'There are no more unused Reels.'
-      );
-
-      if (button) {
-        button.disabled = false;
-        button.textContent =
-          'Load Oldest Reels';
-      }
-
-      return;
-    }
-
-    mergeReels(
-      result.reels
-    );
-
-    saveLocalState();
-
-    showToast(
-      `Loaded ${result.reels.length} oldest Reels.`
-    );
-
-    render();
-  } catch (error) {
-    console.error(error);
-
-    showError(
-      `Could not load oldest Reels: ${error.message}`
-    );
-
-    if (button) {
-      button.disabled = false;
-      button.textContent =
-        'Load Oldest Reels';
-    }
-  }
-}
+/* =========================================================
+   ACCOUNT MODAL
+========================================================= */
 
 function openAddAccountModal() {
   const existing =
@@ -1188,7 +1814,9 @@ function openAddAccountModal() {
   }
 
   const modal =
-    document.createElement('div');
+    document.createElement(
+      'div'
+    );
 
   modal.id =
     'account-modal';
@@ -1270,7 +1898,10 @@ async function createAccount() {
       input?.value || ''
     )
       .trim()
-      .replace(/^@/, '');
+      .replace(
+        /^@/,
+        ''
+      );
 
   if (!username) {
     showError(
@@ -1281,7 +1912,9 @@ async function createAccount() {
   }
 
   if (button) {
-    button.disabled = true;
+    button.disabled =
+      true;
+
     button.textContent =
       'Adding…';
   }
@@ -1292,6 +1925,7 @@ async function createAccount() {
         '/api/accounts',
         {
           method: 'POST',
+
           body: JSON.stringify({
             username
           })
@@ -1305,12 +1939,27 @@ async function createAccount() {
       );
     }
 
-    state.accounts.push(
-      account
-    );
+    /*
+     * Avoid duplicates in local state.
+     */
+
+    const existing =
+      state.accounts.find(
+        (item) =>
+          item.id ===
+          account.id
+      );
+
+    if (!existing) {
+      state.accounts.push(
+        account
+      );
+    }
 
     state.settings.selectedAccountId =
       account.id;
+
+    delete state.settings.selectedReelId;
 
     saveLocalState();
 
@@ -1321,6 +1970,7 @@ async function createAccount() {
     );
 
     render();
+
   } catch (error) {
     console.error(error);
 
@@ -1329,19 +1979,27 @@ async function createAccount() {
     );
 
     if (button) {
-      button.disabled = false;
+      button.disabled =
+        false;
+
       button.textContent =
         'Add Account';
     }
   }
 }
 
+/* =========================================================
+   DELETE ACCOUNT
+========================================================= */
+
 async function deleteAccount(
   accountId
 ) {
   const account =
     state.accounts.find(
-      (item) => item.id === accountId
+      (item) =>
+        item.id ===
+        accountId
     );
 
   if (!account) {
@@ -1371,7 +2029,8 @@ async function deleteAccount(
     state.accounts =
       state.accounts.filter(
         (item) =>
-          item.id !== accountId
+          item.id !==
+          accountId
       );
 
     state.reels =
@@ -1382,7 +2041,8 @@ async function deleteAccount(
       );
 
     if (
-      state.settings.selectedAccountId ===
+      state.settings
+        .selectedAccountId ===
       accountId
     ) {
       state.settings.selectedAccountId =
@@ -1399,6 +2059,7 @@ async function deleteAccount(
     );
 
     render();
+
   } catch (error) {
     console.error(error);
 
@@ -1408,6 +2069,10 @@ async function deleteAccount(
   }
 }
 
+/* =========================================================
+   ACCOUNTS
+========================================================= */
+
 function renderAccounts() {
   return `
     <section class="card">
@@ -1415,11 +2080,16 @@ function renderAccounts() {
       <div class="section-header">
 
         <div>
-          <h2>Instagram Accounts</h2>
+
+          <h2>
+            Instagram Accounts
+          </h2>
+
           <p>
             Manage the profiles Clipper uses
             for Reel discovery.
           </p>
+
         </div>
 
         <button
@@ -1438,10 +2108,13 @@ function renderAccounts() {
 
               ${state.accounts
                 .map(
-                  (account) => `
+                  (
+                    account
+                  ) => `
                     <div class="account-row">
 
                       <div>
+
                         <strong>
                           @${escapeHtml(
                             account.username
@@ -1457,6 +2130,7 @@ function renderAccounts() {
                             ).length
                           } Reels
                         </span>
+
                       </div>
 
                       <div class="button-row">
@@ -1491,9 +2165,11 @@ function renderAccounts() {
           `
           : `
             <div class="empty-state">
+
               <p>
                 No Instagram accounts added yet.
               </p>
+
             </div>
           `
       }
@@ -1510,15 +2186,25 @@ function selectAccount(
 
   delete state.settings.selectedReelId;
 
+  state.reelView =
+    'oldest';
+
   saveLocalState();
+
   setTab('home');
 }
+
+/* =========================================================
+   BATCHES
+========================================================= */
 
 function renderBatches() {
   return `
     <section class="card">
 
-      <h2>Batches</h2>
+      <h2>
+        Batches
+      </h2>
 
       <p class="muted">
         Reel batches generated by Clipper.
@@ -1531,13 +2217,18 @@ function renderBatches() {
 
               ${state.batches
                 .map(
-                  (batch) => `
+                  (
+                    batch
+                  ) => `
                     <div class="batch-row">
 
                       <strong>
                         Batch
                         ${escapeHtml(
-                          batch.id.slice(
+                          String(
+                            batch.id ||
+                              ''
+                          ).slice(
                             0,
                             8
                           )
@@ -1547,7 +2238,8 @@ function renderBatches() {
                       <span>
                         ${
                           batch.reelIds
-                            ?.length || 0
+                            ?.length ||
+                          0
                         } Reels
                       </span>
 
@@ -1566,9 +2258,11 @@ function renderBatches() {
           `
           : `
             <div class="empty-state">
+
               <p>
                 No batches yet.
               </p>
+
             </div>
           `
       }
@@ -1577,33 +2271,80 @@ function renderBatches() {
   `;
 }
 
+/* =========================================================
+   SETTINGS
+========================================================= */
+
 function renderSettings() {
   return `
     <section class="card">
 
-      <h2>Settings</h2>
+      <h2>
+        Settings
+      </h2>
 
       <div class="settings-grid">
 
         <div class="setting-row">
-          <strong>Backend</strong>
+
+          <strong>
+            Backend
+          </strong>
+
           <span>
-            ${escapeHtml(API)}
+            ${escapeHtml(
+              API
+            )}
           </span>
+
         </div>
 
         <div class="setting-row">
-          <strong>Version</strong>
+
+          <strong>
+            Frontend
+          </strong>
+
           <span>
-            Clipper V1.5
+            Clipper V1.6
           </span>
+
         </div>
 
         <div class="setting-row">
-          <strong>Storage</strong>
+
+          <strong>
+            AI
+          </strong>
+
+          <span>
+            OpenRouter
+          </span>
+
+        </div>
+
+        <div class="setting-row">
+
+          <strong>
+            Reel discovery
+          </strong>
+
+          <span>
+            Oldest / Newest
+          </span>
+
+        </div>
+
+        <div class="setting-row">
+
+          <strong>
+            Storage
+          </strong>
+
           <span>
             Browser + backend
           </span>
+
         </div>
 
       </div>
@@ -1611,6 +2352,10 @@ function renderSettings() {
     </section>
   `;
 }
+
+/* =========================================================
+   GLOBAL FUNCTIONS
+========================================================= */
 
 window.setTab =
   setTab;
@@ -1648,8 +2393,15 @@ window.renderReel =
 window.syncAccount =
   syncAccount;
 
-window.loadOldestBatch =
-  loadOldestBatch;
+window.showOldestReels =
+  showOldestReels;
+
+window.showNewestReels =
+  showNewestReels;
+
+/* =========================================================
+   START
+========================================================= */
 
 document.addEventListener(
   'DOMContentLoaded',
