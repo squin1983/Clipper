@@ -47,6 +47,38 @@ function saveLocalState() {
   );
 }
 
+async function restoreReelToBackend(reel) {
+  if (!reel?.id) {
+    throw new Error('Reel ID is missing.');
+  }
+
+  const account = state.accounts.find(
+    (item) => item.id === reel.accountId
+  );
+
+  if (!account) {
+    throw new Error('Instagram account for this Reel is missing.');
+  }
+
+  const result = await api(
+    '/api/reels/restore',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        account,
+        reel
+      })
+    },
+    30000
+  );
+
+  if (result?.reel) {
+    mergeReels([result.reel]);
+  }
+
+  return result?.reel || reel;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -1320,6 +1352,8 @@ async function selectHook(
   reel.selectedHook =
     hooks[index];
 
+  await restoreReelToBackend(reel);
+
   /*
    * Save hook to backend too.
    */
@@ -1476,6 +1510,8 @@ async function renderReel(
   }
 
   try {
+    await restoreReelToBackend(reel);
+
     const result =
       await api(
         `/api/jobs/${encodeURIComponent(
