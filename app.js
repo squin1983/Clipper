@@ -1886,6 +1886,18 @@ function openAddAccountModal() {
         autocomplete="off"
       >
 
+      <label style="display:block;margin-top:14px;">
+        Content Style
+      </label>
+
+      <select
+        id="account-style"
+        style="width:100%;margin-top:6px;"
+      >
+        <option value="movie_tv">Movie / TV</option>
+        <option value="music">Music</option>
+      </select>
+
       <button
         class="primary"
         onclick="createAccount()"
@@ -1963,7 +1975,10 @@ async function createAccount() {
           method: 'POST',
 
           body: JSON.stringify({
-            username
+            username,
+            styleProfile:
+              document.getElementById('account-style')?.value ||
+              'movie_tv'
           })
         },
         30000
@@ -2164,7 +2179,11 @@ function renderAccounts() {
                                 reel.accountId ===
                                 account.id
                             ).length
-                          } Reels
+                          } Reels · ${
+                            account.styleProfile === 'music'
+                              ? 'Music'
+                              : 'Movie / TV'
+                          }
                         </span>
 
                       </div>
