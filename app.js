@@ -1921,7 +1921,18 @@ function openAddAccountModal(accountId = null) {
         rows="7"
         placeholder="Paste real hooks/captions already used on this account, one per line"
         style="width:100%;margin-top:6px;resize:vertical;"
-      >${escapeHtml((editingAccount?.styleExamples || []).join('\n'))}</textarea>
+      >${escapeHtml((editingAccount?.styleExamples || []).join('\\n'))}</textarea>
+
+      ${editingAccount ? `
+        <button
+          type="button"
+          onclick="generateStyleDNA('${accountId}')"
+          id="generate-style-dna-button"
+          style="width:100%;margin-top:10px;"
+        >
+          ✨ Generate Style DNA from Reels
+        </button>
+      ` : ''}
 
       <button
         class="primary"
@@ -2064,6 +2075,56 @@ async function createAccount() {
 
       button.textContent =
         'Add Account';
+    }
+  }
+}
+
+async function generateStyleDNA(accountId) {
+  const button = document.getElementById('generate-style-dna-button');
+
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = '✨ Analyzing your Reels…';
+    }
+
+    const result = await api(
+      '/api/accounts/' + encodeURIComponent(accountId) + '/generate-style-dna',
+      { method: 'POST' },
+      180000
+    );
+
+    const updated = result?.account;
+    if (!updated?.id) {
+      throw new Error('The backend did not return the updated account.');
+    }
+
+    const index = state.accounts.findIndex((item) => item.id === accountId);
+    if (index >= 0) state.accounts[index] = updated;
+
+    saveLocalState();
+
+    const rules = document.getElementById('account-style-rules');
+    const examples = document.getElementById('account-style-examples');
+
+    if (rules) rules.value = updated.styleRules || '';
+    if (examples) examples.value = Array.isArray(updated.styleExamples)
+      ? updated.styleExamples.join('\\n')
+      : '';
+
+    showToast('Style DNA generated from your synced Reels.');
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = '✨ Generate Style DNA from Reels';
+    }
+  } catch (error) {
+    console.error(error);
+    showError('Could not generate Style DNA: ' + error.message);
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = '✨ Generate Style DNA from Reels';
     }
   }
 }
@@ -2479,6 +2540,9 @@ window.closeModal =
 
 window.createAccount =
   createAccount;
+
+window.generateStyleDNA =
+  generateStyleDNA;
 
 window.deleteAccount =
   deleteAccount;
