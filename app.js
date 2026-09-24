@@ -1839,7 +1839,7 @@ async function syncAccount() {
    ACCOUNT MODAL
 ========================================================= */
 
-function openAddAccountModal() {
+function openAddAccountModal(accountId = null) {
   const existing =
     document.getElementById(
       'account-modal'
@@ -1848,6 +1848,8 @@ function openAddAccountModal() {
   if (existing) {
     existing.remove();
   }
+
+  const editingAccount = accountId ? state.accounts.find((item) => item.id === accountId) : null;
 
   const modal =
     document.createElement(
@@ -1871,12 +1873,11 @@ function openAddAccountModal() {
       </button>
 
       <h2>
-        Add Instagram Account
+        ${editingAccount ? 'Edit Instagram Account' : 'Add Instagram Account'}
       </h2>
 
       <p>
-        Enter the Instagram username Clipper
-        should use for Reel discovery.
+        ${editingAccount ? 'Update the account style Clipper uses for AI analysis.' : 'Enter the Instagram username Clipper should use for Reel discovery.'}
       </p>
 
       <input
@@ -1884,6 +1885,8 @@ function openAddAccountModal() {
         type="text"
         placeholder="@username"
         autocomplete="off"
+        value="${escapeHtml(editingAccount?.username || '')}"
+        ${editingAccount ? 'disabled' : ''}
       >
 
       <label style="display:block;margin-top:14px;">
@@ -1894,16 +1897,38 @@ function openAddAccountModal() {
         id="account-style"
         style="width:100%;margin-top:6px;"
       >
-        <option value="movie_tv">Movie / TV</option>
-        <option value="music">Music</option>
+        <option value="movie_tv" ${editingAccount?.styleProfile !== 'music' ? 'selected' : ''}>Movie / TV</option>
+        <option value="music" ${editingAccount?.styleProfile === 'music' ? 'selected' : ''}>Music</option>
       </select>
+
+      <label style="display:block;margin-top:14px;">
+        Style DNA Rules
+      </label>
+
+      <textarea
+        id="account-style-rules"
+        rows="5"
+        placeholder="Tone, sentence rhythm, wording, emoji use, formatting, what to avoid…"
+        style="width:100%;margin-top:6px;resize:vertical;"
+      >${escapeHtml(editingAccount?.styleRules || '')}</textarea>
+
+      <label style="display:block;margin-top:14px;">
+        Real Hook / Caption Examples (one per line, up to 10)
+      </label>
+
+      <textarea
+        id="account-style-examples"
+        rows="7"
+        placeholder="Paste real hooks/captions already used on this account, one per line"
+        style="width:100%;margin-top:6px;resize:vertical;"
+      >${escapeHtml((editingAccount?.styleExamples || []).join('\n'))}</textarea>
 
       <button
         class="primary"
-        onclick="createAccount()"
+        onclick="${editingAccount ? 'saveAccountStyleDNA(' + String.fromCharCode(39) + accountId + String.fromCharCode(39) + ')' : 'createAccount()'}"
         id="create-account-button"
       >
-        Add Account
+        ${editingAccount ? 'Save Style DNA' : 'Add Account'}
       </button>
 
     </div>
@@ -1977,8 +2002,12 @@ async function createAccount() {
           body: JSON.stringify({
             username,
             styleProfile:
-              document.getElementById('account-style')?.value ||
-              'movie_tv'
+              document.getElementById('account-style')?.value || 'movie_tv',
+            styleRules:
+              String(document.getElementById('account-style-rules')?.value || '').trim().slice(0, 5000),
+            styleExamples:
+              String(document.getElementById('account-style-examples')?.value || '')
+                .split(/\r?\n/).map((item) => item.trim()).filter(Boolean).slice(0, 10)
           })
         },
         30000
@@ -2036,6 +2065,27 @@ async function createAccount() {
       button.textContent =
         'Add Account';
     }
+  }
+}
+
+async function saveAccountStyleDNA(accountId) {
+  const button = document.getElementById('create-account-button');
+  try {
+    if (button) { button.disabled = true; button.textContent = 'Saving…'; }
+    const updated = await api('/api/accounts/' + encodeURIComponent(accountId), {
+      method: 'PUT',
+      body: JSON.stringify({
+        styleProfile: document.getElementById('account-style')?.value || 'movie_tv',
+        styleRules: String(document.getElementById('account-style-rules')?.value || '').trim().slice(0, 5000),
+        styleExamples: String(document.getElementById('account-style-examples')?.value || '').split(/\r?\n/).map((item) => item.trim()).filter(Boolean).slice(0, 10)
+      })
+    }, 30000);
+    const index = state.accounts.findIndex((item) => item.id === accountId);
+    if (index >= 0) state.accounts[index] = updated;
+    saveLocalState(); closeModal(); showToast('Style DNA saved.'); render();
+  } catch (error) {
+    console.error(error); showError('Could not save Style DNA: ' + error.message);
+    if (button) { button.disabled = false; button.textContent = 'Save Style DNA'; }
   }
 }
 
@@ -2200,6 +2250,12 @@ function renderAccounts() {
                               ? 'Selected'
                               : 'Select'
                           }
+                        </button>
+
+                        <button
+                          onclick="openAddAccountModal('${account.id}')"
+                        >
+                          Edit Style DNA
                         </button>
 
                         <button
