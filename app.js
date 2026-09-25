@@ -251,20 +251,27 @@ async function loadData() {
       )
     ]);
 
-    state.accounts =
+    /*
+     * Render/Sync data must survive backend restarts.
+     * The browser is the durable client-side copy, so merge
+     * server data into local state instead of replacing it
+     * with an empty Render /tmp database after a restart.
+     */
+    mergeAccounts(
       Array.isArray(accounts)
         ? accounts
-        : [];
+        : []
+    );
 
-    state.reels =
+    mergeReels(
       Array.isArray(reels)
         ? reels
-        : [];
+        : []
+    );
 
-    state.batches =
-      Array.isArray(batches)
-        ? batches
-        : [];
+    if (Array.isArray(batches) && batches.length) {
+      state.batches = batches;
+    }
 
     if (
       state.settings.selectedAccountId &&
@@ -331,10 +338,14 @@ function getAccountReels() {
 }
 
 function getUnusedReels() {
+  /*
+   * Keep rendered Reels selectable so the same Reel can be
+   * rendered again without starting the whole workflow over.
+   */
   return getAccountReels().filter(
     (reel) =>
-      !reel.used &&
-      !reel.rendered
+      !reel.used ||
+      reel.rendered
   );
 }
 
@@ -380,6 +391,30 @@ function sortNewestFirst(reels) {
       return dateB - dateA;
     }
   );
+}
+
+function mergeAccounts(newAccounts) {
+  const map = new Map(
+    state.accounts.map(
+      (account) => [
+        account.id,
+        account
+      ]
+    )
+  );
+
+  for (const account of newAccounts || []) {
+    const existing = map.get(account.id);
+
+    map.set(
+      account.id,
+      existing
+        ? { ...existing, ...account }
+        : account
+    );
+  }
+
+  state.accounts = Array.from(map.values());
 }
 
 function mergeReels(newReels) {
@@ -1784,6 +1819,22 @@ async function syncAccount() {
   );
 
   try {
+    /*
+     * Recreate the account in the backend after a Render restart.
+     * Render's /tmp database is ephemeral, while the browser copy
+     * remains available.
+     */
+    await api(
+      '/api/accounts/restore',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          account
+        })
+      },
+      30000
+    );
+
     const result =
       await api(
         `/api/accounts/${encodeURIComponent(
@@ -1897,8 +1948,9 @@ function openAddAccountModal(accountId = null) {
         id="account-style"
         style="width:100%;margin-top:6px;"
       >
-        <option value="movie_tv" ${editingAccount?.styleProfile !== 'music' ? 'selected' : ''}>Movie / TV</option>
+        <option value="movie_tv" ${(!editingAccount?.styleProfile || editingAccount?.styleProfile === 'movie_tv') ? 'selected' : ''}>Movie / TV</option>
         <option value="music" ${editingAccount?.styleProfile === 'music' ? 'selected' : ''}>Music</option>
+        <option value="meme" ${editingAccount?.styleProfile === 'meme' ? 'selected' : ''}>Meme</option>
       </select>
 
       <label style="display:block;margin-top:14px;">
@@ -2293,6 +2345,8 @@ function renderAccounts() {
                           } Reels · ${
                             account.styleProfile === 'music'
                               ? 'Music'
+                              : account.styleProfile === 'meme'
+                              ? 'Meme'
                               : 'Movie / TV'
                           }
                         </span>
