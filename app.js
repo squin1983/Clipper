@@ -367,47 +367,71 @@ function getUnusedReels() {
   );
 }
 
+function getReelDateValue(reel) {
+  if (!reel) return null;
+
+  const candidates = [
+    reel.publishedAt,
+    reel.published_at,
+    reel.takenAt,
+    reel.taken_at,
+    reel.takenAtTimestamp,
+    reel.taken_at_timestamp,
+    reel.timestamp,
+    reel.date,
+    reel.raw?.publishedAt,
+    reel.raw?.published_at,
+    reel.raw?.takenAt,
+    reel.raw?.taken_at,
+    reel.raw?.takenAtTimestamp,
+    reel.raw?.taken_at_timestamp,
+    reel.raw?.timestamp,
+    reel.raw?.date
+  ];
+
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === '') continue;
+
+    if (
+      typeof value === 'number' ||
+      /^\\d+(?:\\.\\d+)?$/.test(String(value).trim())
+    ) {
+      const number = Number(value);
+      const date = new Date(
+        number < 100000000000
+          ? number * 1000
+          : number
+      );
+
+      if (!Number.isNaN(date.getTime())) {
+        return date;
+      }
+
+      continue;
+    }
+
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  return null;
+}
+
 function sortOldestFirst(reels) {
   return [...reels].sort(
-    (a, b) => {
-      const dateA =
-        a.publishedAt
-          ? new Date(
-              a.publishedAt
-            ).getTime()
-          : 0;
-
-      const dateB =
-        b.publishedAt
-          ? new Date(
-              b.publishedAt
-            ).getTime()
-          : 0;
-
-      return dateA - dateB;
-    }
+    (a, b) =>
+      (getReelDateValue(a)?.getTime() ?? 0) -
+      (getReelDateValue(b)?.getTime() ?? 0)
   );
 }
 
 function sortNewestFirst(reels) {
   return [...reels].sort(
-    (a, b) => {
-      const dateA =
-        a.publishedAt
-          ? new Date(
-              a.publishedAt
-            ).getTime()
-          : 0;
-
-      const dateB =
-        b.publishedAt
-          ? new Date(
-              b.publishedAt
-            ).getTime()
-          : 0;
-
-      return dateB - dateA;
-    }
+    (a, b) =>
+      (getReelDateValue(b)?.getTime() ?? 0) -
+      (getReelDateValue(a)?.getTime() ?? 0)
   );
 }
 
