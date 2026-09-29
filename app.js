@@ -815,7 +815,7 @@ function renderReelList(reels) {
 
                   <span>
                     ${formatDate(
-                      reel.publishedAt
+                      getReelDateValue(reel) || reel.publishedAt
                     )}
                   </span>
 
@@ -1154,7 +1154,7 @@ function renderReelEditor(reel) {
 
           <p>
             ${formatDate(
-              reel.publishedAt
+              getReelDateValue(reel) || reel.publishedAt
             )}
           </p>
 
