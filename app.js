@@ -93,7 +93,21 @@ function formatDate(value) {
     return 'Unknown date';
   }
 
-  const date = new Date(value);
+  let date;
+
+  if (
+    typeof value === 'number' ||
+    /^\\d+(?:\\.\\d+)?$/.test(String(value).trim())
+  ) {
+    const timestamp = Number(value);
+    date = new Date(
+      timestamp < 100000000000
+        ? timestamp * 1000
+        : timestamp
+    );
+  } else {
+    date = new Date(value);
+  }
 
   if (Number.isNaN(date.getTime())) {
     return 'Unknown date';
