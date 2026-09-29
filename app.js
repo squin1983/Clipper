@@ -287,6 +287,65 @@ async function loadData() {
       state.batches = batches;
     }
 
+    const serverAccountIds = new Set(
+      (Array.isArray(accounts) ? accounts : [])
+        .map((account) => account?.id)
+        .filter(Boolean)
+    );
+
+    const serverReelIds = new Set(
+      (Array.isArray(reels) ? reels : [])
+        .map((reel) => reel?.id)
+        .filter(Boolean)
+    );
+
+    const accountsToRestore =
+      state.accounts.filter(
+        (account) =>
+          account?.id &&
+          account?.username &&
+          !serverAccountIds.has(account.id)
+      );
+
+    const reelsToRestore =
+      state.reels.filter(
+        (reel) =>
+          reel?.id &&
+          reel?.accountId &&
+          reel?.videoUrl &&
+          !serverReelIds.has(reel.id)
+      );
+
+    if (
+      accountsToRestore.length ||
+      reelsToRestore.length
+    ) {
+      await api(
+        '/api/reels/restore-batch',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            accounts: accountsToRestore,
+            reels: reelsToRestore
+          })
+        },
+        120000
+      );
+
+      const restoredReels =
+        await api(
+          '/api/reels?limit=5000',
+          {},
+          30000
+        );
+
+      mergeReels(
+        Array.isArray(restoredReels)
+          ? restoredReels
+          : []
+      );
+    }
+
     if (
       state.settings.selectedAccountId &&
       !state.accounts.some(
