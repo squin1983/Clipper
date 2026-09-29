@@ -97,7 +97,7 @@ function formatDate(value) {
 
   if (
     typeof value === 'number' ||
-    /^\\d+(?:\\.\\d+)?$/.test(String(value).trim())
+    /^\d+(?:\.\d+)?$/.test(String(value).trim())
   ) {
     const timestamp = Number(value);
     date = new Date(
@@ -453,7 +453,7 @@ function getReelDateValue(reel) {
 
     if (
       typeof value === 'number' ||
-      /^\\d+(?:\\.\\d+)?$/.test(String(value).trim())
+      /^\d+(?:\.\d+)?$/.test(String(value).trim())
     ) {
       const number = Number(value);
       const date = new Date(
