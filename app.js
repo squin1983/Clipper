@@ -294,6 +294,10 @@ async function loadData() {
         state.accounts[0].id;
     }
 
+    // A full page reload must always return to the Reel list,
+    // not reopen the last Reel that happened to be selected.
+    delete state.settings.selectedReelId;
+
     saveLocalState();
 
     render();
